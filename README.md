@@ -6,6 +6,9 @@ author: @akatubame
 / version: 0.0.1
 / 使用言語: [AutoHotkey](http://ahkwiki.net/Top)
 
+![screenshot]
+[screenshot]: https://github.com/akatubame/Ascii2dViewer/blob/master/source/Screenshot2.jpg "スクリーンショット"
+
 ##■本ソフトの説明
 
 様々な画像の詳細情報データベースを登録している検索サイト
