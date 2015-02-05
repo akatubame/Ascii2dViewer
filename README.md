@@ -1,11 +1,10 @@
 # Ascii2dViewer
 画像詳細検索サイトのWin用クライアントビューア
 
-author: @akatubame
-date: 2015/02/05
-version: 0.0.1
-
-使用言語: [AutoHotkey](http://ahkwiki.net/Top)
+/ author: @akatubame
+/ date: 2015/02/05
+/ version: 0.0.1
+/ 使用言語: [AutoHotkey](http://ahkwiki.net/Top)
 
 ##■本ソフトの説明
 
