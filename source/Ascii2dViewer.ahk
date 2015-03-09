@@ -269,7 +269,7 @@ class A2 {
 ;--- 汎用関数 ---;
 
 ; 画像ビューの更新
-Gui_ImageChange(ctr, filePath){
+ImageChange(ctr, filePath){
 	filePath := FileExist(filePath) ? filePath : io.BlankImage
 	Gui_ImageChange(ctr, filePath)
 }
@@ -283,8 +283,8 @@ DetailClear(Init=""){
 	CTL_LST_Build(io.ctr.DetailList)
 	
 	; 画像ビューをブランクに戻す
-	A2.Gui_ImageChange(io.ctr.DetailImage, io.BlankImage)
-	A2.Gui_ImageChange(io.ctr.SourceImage, io.BlankImage)
+	A2.ImageChange(io.ctr.DetailImage, io.BlankImage)
+	A2.ImageChange(io.ctr.SourceImage, io.BlankImage)
 	
 	; 詳細ビューを空にする(起動直後は無効)
 	If ( !Init )
@@ -303,7 +303,7 @@ ExpandFocus(){
 	thisList    := io.ctr.ImageList.ItemObj.ItemList
 	ID          := TV_GetIDFromValue(md5, thisList, "md5")
 	SourceImage := thisList[ID].SourceImage
-	A2.Gui_ImageChange(io.ctr.SourceImage, SourceImage)
+	A2.ImageChange(io.ctr.SourceImage, SourceImage)
 	
 	; フォーカスされたアイテムのmd5をもとに詳細情報リストを取得
 	logFile := io.LogDir . md5 . ".ini"
@@ -315,7 +315,7 @@ ExpandFocus(){
 	thisList := io.ctr.DetailList.ItemObj.ItemList
 	thumb    := thisList[1].thumb
 	xhtml    := thisList[1].xhtml
-	A2.Gui_ImageChange(io.ctr.DetailImage, thumb)
+	A2.ImageChange(io.ctr.DetailImage, thumb)
 	Gui_HtmlViewChange(io.ctr.DetailView, xhtml)
 	
 }
@@ -329,7 +329,7 @@ DetailFocus(){
 	thisList := io.ctr.DetailList.ItemObj.ItemList
 	thumb    := thisList[ID].thumb
 	xhtml    := thisList[ID].xhtml
-	A2.Gui_ImageChange(io.ctr.DetailImage, thumb)
+	A2.ImageChange(io.ctr.DetailImage, thumb)
 	Gui_HtmlViewChange(io.ctr.DetailView, xhtml)
 	
 }
