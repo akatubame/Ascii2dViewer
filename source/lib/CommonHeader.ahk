@@ -45,6 +45,7 @@ SetTitleMatchMode, RegEx
 #Include *i <MyScripts>
 #Include *i <Functions>
 #Include *i <COM>
+#Include *i <DOM>
 
 ; グローバル変数の格納オブジェクトを生成
 global A_Init_Object := Object()
