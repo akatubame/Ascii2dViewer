@@ -448,7 +448,7 @@ Rename(newName=""){
 	thisList[ID].SourceImage := io.ImgDir . newName "." ext
 	thisList[ID].ImageName   := newName
 	thisList[ID].Renamed     := 1
-	CTL_LST_Build(t)
+	CTL_LST_Build(io.ctr.ImageList)
 	LV_Modify(ID, "Vis Select Focus")
 }
 
