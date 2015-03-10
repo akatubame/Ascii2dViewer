@@ -29,11 +29,11 @@ io.PostUri := "http://www.ascii2d.net/imagesearch/search"
 io.GetUri  := "http://www.ascii2d.net/imagesearch/similar/"
 
 ; 各種テーブル設定を読みこみ
-A_Init_Object["Ascii2dGetUrl"] := FileRead("regex\Ascii2dGetUrl.txt")
-A_Init_Object["Ascii2dMD5"]    := FileRead("regex\Ascii2dMD5.txt")
-A_Init_Object["Ascii2dThumb"]  := FileRead("regex\Ascii2dThumb.txt")
-A_Init_Object["Ascii2dXhtml"]  := FileRead("regex\Ascii2dXhtml.txt")
-A_Init_Object["Ascii2dRename"] := FileRead("regex\Ascii2dRename.txt")
+A_Init_Object["Ascii2dGetUrl"] := FileRead(A_ScriptDir "\" "regex\Ascii2dGetUrl.txt")
+A_Init_Object["Ascii2dMD5"]    := FileRead(A_ScriptDir "\" "regex\Ascii2dMD5.txt")
+A_Init_Object["Ascii2dThumb"]  := FileRead(A_ScriptDir "\" "regex\Ascii2dThumb.txt")
+A_Init_Object["Ascii2dXhtml"]  := FileRead(A_ScriptDir "\" "regex\Ascii2dXhtml.txt")
+A_Init_Object["Ascii2dRename"] := FileRead(A_ScriptDir "\" "regex\Ascii2dRename.txt")
 
 ; 動作順序の定義
 Gosub, Init
@@ -288,7 +288,7 @@ DetailClear(Init=""){
 	
 	; 詳細ビューを空にする(起動直後は無効)
 	If ( !Init )
-		io.ctr.DetailView.doc.all["id"].innerhtml := ""
+		Gui_HtmlViewChange(io.ctr.DetailView, "")
 }
 
 ;--- イベント関数 ---;
