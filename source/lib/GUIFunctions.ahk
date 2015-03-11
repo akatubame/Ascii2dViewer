@@ -11,14 +11,14 @@ global io ; アプリ専用変数格納オブジェクト
 
 ; GUIの構築処理
 GUI_Build:
-	GuiNum     := io.ThisGui.GuiNum
-	GuiOption  := io.ThisGui.GuiOption
-	GuiMarginX := io.ThisGui.Margin.X
-	GuiMarginY := io.ThisGui.Margin.Y
-	GuiHidden  := io.ThisGui.Hidden
-	MenuUse    := io.ThisGui.MenuUse
-	MenuName   := io.ThisGui.MenuName
-	NotGroup   := io.ThisGui.NotGroup
+	GuiNum     := io.thisGui.GuiNum
+	GuiOption  := io.thisGui.GuiOption
+	GuiMarginX := io.thisGui.Margin.X
+	GuiMarginY := io.thisGui.Margin.Y
+	GuiHidden  := io.thisGui.Hidden
+	MenuUse    := io.thisGui.MenuUse
+	MenuName   := io.thisGui.MenuName
+	NotGroup   := io.thisGui.NotGroup
 	
 	; GUIウィンドウの生成
 	Gui, %GuiNum%:%GuiOption%
@@ -28,22 +28,22 @@ GUI_Build:
 		Gui, %GuiNum%:Menu, %MenuName%
 	
 	; ウィンドウ下のGUIコントロールをすべて生成
-	For i in io.ThisGui.Ctr {
-		t         := io.ThisGui.Ctr[i]
+	For i in io.thisGui.Ctrs {
+		t         := io.thisGui.Ctrs[i]
 		t.GuiName := key
 		t.GuiNum  := GuiNum
 		Gosub, CTL_Build
 	}
 	
 	; GUI情報の記憶
-	io.ThisGui.ID   := WinExist()
-	io.ThisGui.Hwnd := "ahk_id " io.ThisGui.ID
-	t.Hwnd          := io.ThisGui.Hwnd
+	io.thisGui.ID   := WinExist()
+	io.thisGui.Hwnd := "ahk_id " io.thisGui.ID
+	t.Hwnd          := io.thisGui.Hwnd
 	If (NotGroup = "")
-		GroupAdd, GuiGroup, % io.ThisGui.Hwnd
+		GroupAdd, GuiGroup, % io.thisGui.Hwnd
 	
 	; GUIの初期情報の適用
-	GUI_Init(io.ThisGui)
+	GUI_Init(io.thisGui)
 	
 return
 
@@ -64,7 +64,7 @@ CTL_Build:
 		IconUse := t.Icon.Use
 		AddTags := t.AddTags
 		
-		FileToList(t)
+		LoadItemList(t)
 		If (CtrType = "ListView")
 			CtrText := LV_GetColumnName(t)
 		
@@ -104,7 +104,7 @@ CTL_Build:
 	If (CtrType = "ListView" or CtrType = "TreeView") {
 		CTL_LST_Build(t)
 		If ( CtrType = "TreeView" )
-			TV_GroupListBuild(t)
+			TV_BuildGroupItemList(t)
 	}
 	Else If (CtrType = "Picture") {
 		t.Picture.CurrentImg := CtrText
@@ -112,9 +112,9 @@ CTL_Build:
 	Else If (CtrType = "StatusBar") {
 		SB_SetText("", 1, 2)
 		If (SB_SetParts != "") {
-			params := _StringSplit(SB_SetParts, " ")
-			SB_SetParts(params*)
-			for k,v in params
+			args := _StringSplit(SB_SetParts, " ")
+			SB_SetParts(args*)
+			for k,v in args
 				SB_SetText("", k+1, 2)
 		}
 	}
@@ -126,9 +126,9 @@ return
 ; GUIの各種データ保存処理
 GUI_Save:
 	; GUI、リスト情報保存
-	For i,this in io.Gui {
-		GUI_GetPosClient(this)
-		For j,thisCtr in this.Ctr {
+	For i,thisGui in io.Gui {
+		GUI_GetPosClient(thisGui)
+		For j,thisCtr in thisGui.Ctrs {
 			CTL_LST_Save(thisCtr)
 		}
 	}
@@ -144,8 +144,8 @@ return
 ; GUIの各種データ読込処理
 GUI_Load:
 	; コントロール情報を読込
-	For i,this in io.Gui {
-		For j,thisCtr in this.Ctr {
+	For i,thisGui in io.Gui {
+		For j,thisCtr in thisGui.Ctrs {
 			CTL_LST_Load(thisCtr)
 			HtmlLoad(thisCtr)
 		}
@@ -159,16 +159,16 @@ GUI_Destroy:
 	io.SaveCtrData := ["GuiNum", "GuiName", "ControlID", "Hwnd", "ItemObj", "PosOption", "doc", "ItemObj", "ItemList"]
 	
 	; 不要データ破棄処理
-	For i,this in io.Gui {
-		For j in this {
+	For i,thisGui in io.Gui {
+		For j in thisGui {
 			For key,val in io.SaveGuiData {
 				If (j = val) {
-					this.Remove(j)
+					thisGui.Remove(j)
 					Break
 				}
 			}
 		}
-		For j,thisCtr in this.Ctr {
+		For j,thisCtr in thisGui.Ctrs {
 			For k in thisCtr {
 				For key,val in io.SaveCtrData {
 					If (k = val) {
@@ -184,16 +184,16 @@ return
 
 ; 各種メニュー構築
 Menu_Build:
-	For i,this in io.MN
-		Menu_Build(this.menu, this.name, this.extend)
+	For i,thisItem in io.MN
+		Menu_Build(thisItem.menu, thisItem.name, thisItem.extend)
 return
 
 
 ; 各種ホットキー割当て
 Hotkey_Build:
-	For i,this in io.HK {
-		Hotkey("IfWinActive", this.twnd)
-		For j,thisHotkey in this.hotkeys
+	For i in io.HK {
+		Hotkey("IfWinActive", io.HK[i].twnd)
+		For j,thisHotkey in io.HK[i].hotkeys
 			If ( thisHotkey.KeyName != "" )
 				Hotkey(thisHotkey.KeyName, thisHotkey.Label)
 	}
@@ -201,40 +201,40 @@ return
 
 ; ホットキー設定
 Hotkey_Setting:
-	io.ThisGui := Object()
-	io.ThisGui.NotGroup := 1
-	io.ThisGui.Hotkey   := 1
+	io.thisGui := Object()
+	io.thisGui.NotGroup := 1
+	io.thisGui.Hotkey   := 1
 	
-	Hotkey_GuiBuild(io.ThisGui)
+	Hotkey_GuiBuild(io.thisGui)
 	Gosub, GUI_Build
-	GUI_Show(io.ThisGui)
+	GUI_Show(io.thisGui)
 return
 
 ; ホットキー設定（Editコントロールモード）
 Hotkey_SettingEdit:
-	io.ThisGui := Object()
-	io.ThisGui.NotGroup := 1
+	io.thisGui := Object()
+	io.thisGui.NotGroup := 1
 	
-	Hotkey_GuiBuild(io.ThisGui)
+	Hotkey_GuiBuild(io.thisGui)
 	Gosub, GUI_Build
-	GUI_Show(io.ThisGui)
+	GUI_Show(io.thisGui)
 return
 
 ; ホットキー設定GUIのセーブ処理
 Hotkey_Save:
-	GUI_Submit(io.ThisGui)
-	Hotkey_GuiSave(io.ThisGui)
+	GUI_Submit(io.thisGui)
+	Hotkey_GuiSave(io.thisGui)
 	
 	_ObjToFile(io.HK, io.HotkeyFile, "Backup")
-	GUI_Destroy(io.ThisGui)
+	GUI_Destroy(io.thisGui)
 return
 
 ; ホットキー設定GUIのキャンセル処理
 99GuiClose:
 99GuiEscape:
 Hotkey_Cancel:
-	GUI_Cancel(io.ThisGui)
-	GUI_Destroy(io.ThisGui)
+	GUI_Cancel(io.thisGui)
+	GUI_Destroy(io.thisGui)
 return
 
 ;-------------------------------------------
@@ -259,16 +259,17 @@ return
 
 ; イベント前処理
 SetUp:
-	io.This    := GetGui()
-	io.ThisCtr := GetCtrFocus(io.Gui[io.This])
+	io.this    := GetGui() ; io.thisGuiを使うと競合しエラー
+	io.thisCtr := GetCtrFocus(io.this)
 	
-	If ( IsObject(io.ThisCtr) )
-		CTL_SetActive(io.ThisCtr)
-	Else If ( IsObject(io.This) )
-		GUI_SetActive(io.This)
+	If ( IsObject(io.thisCtr) )
+		CTL_SetActive(io.thisCtr)
+	Else If ( IsObject(io.this) )
+		GUI_SetActive(io.this)
 	Else
 		return
 return
+
 
 ; 汎用操作
 
@@ -277,15 +278,15 @@ Reload:
 return
 
 NotSaveReload:
-	For i,this in io.Gui
-		For j,thisCtr in this.Ctr
-			FileToList(thisCtr)
+	For i,thisGui in io.Gui
+		For j,thisCtr in thisGui.Ctrs
+			LoadItemList(thisCtr)
 	Reload
 return
 
 IconReflesh:
 	Gosub, SetUp
-	IL_Reflesh(io.ThisCtr)
+	IL_Reflesh(io.thisCtr)
 return
 
 
@@ -293,57 +294,57 @@ return
 
 InsertFocus:
 	Gosub, SetUp
-	InsertFocus(io.ThisCtr)
+	InsertFocus(io.thisCtr)
 return
 
 InFocus:
 	Gosub, SetUp
-	InFocus(io.ThisCtr)
+	InFocus(io.thisCtr)
 return
 
 DeleteFocus:
 	Gosub, SetUp
-	DeleteFocus(io.ThisCtr)
+	DeleteFocus(io.thisCtr)
 return
 
 SetNameFocus:
 	Gosub, SetUp
-	SetNameFocus(io.ThisCtr)
+	SetNameFocus(io.thisCtr)
 return
 
 SetIconFocus:
 	Gosub, SetUp
-	SetIconFocus(io.ThisCtr)
+	SetIconFocus(io.thisCtr)
 return
 
 MoveUpFocus:
 	Gosub, SetUp
-	MoveFocus("Up", io.ThisCtr)
+	MoveFocus("Up", io.thisCtr)
 return
 
 MoveDownFocus:
 	Gosub, SetUp
-	MoveFocus("Down", io.ThisCtr)
+	MoveFocus("Down", io.thisCtr)
 return
 
 CopyFocus:
 	Gosub, SetUp
-	CopyFocus(io.ThisCtr)
+	CopyFocus(io.thisCtr)
 return
 
 PasteFocus:
 	Gosub, SetUp
-	PasteFocus(io.ThisCtr)
+	PasteFocus(io.thisCtr)
 return
 
 CopyFocusList:
 	Gosub, SetUp
-	CopyFocusList(io.ThisCtr)
+	CopyFocusList(io.thisCtr)
 return
 
 PasteFocusList:
 	Gosub, SetUp
-	PasteFocusList(io.ThisCtr)
+	PasteFocusList(io.thisCtr)
 return
 
 
@@ -361,10 +362,10 @@ GUI_Add(t, GuiNum, GuiOption="", Title="", Margin=""){
 	t.Margin    := Object()
 	t.Margin.X  := Margin.X
 	t.Margin.Y  := Margin.Y
-	t.Ctr       := Object()
+	t.Ctrs      := Object()
 }
 CTL_Add(t, CtrType, CtrName, CtrText="", CtrEventName="", CtrOption="", CtrHtml="", GuiNum="", Pos=""){
-	_AddToObj(t.Ctr, {CtrType:CtrType, CtrName:CtrName, CtrText:CtrText, CtrEventName:CtrEventName, CtrOption:CtrOption, CtrHtml:CtrHtml, GuiNum:GuiNum, Pos:Pos})
+	_AddToObj(t.Ctrs, {CtrType:CtrType, CtrName:CtrName, CtrText:CtrText, CtrEventName:CtrEventName, CtrOption:CtrOption, CtrHtml:CtrHtml, GuiNum:GuiNum, Pos:Pos})
 }
 GUI_Show_NA(t){
 	Temp_DHW := A_DetectHiddenWindows
@@ -449,6 +450,9 @@ GUI_GetPosClient(t){
 	t.Pos.Y := Y
 	t.Pos.W := Width  - BorderW
 	t.Pos.H := Height - BorderH
+}
+Gui_HtmlViewChange(t, ByRef xhtml){
+	t.doc.all["id"].innerhtml := xhtml
 }
 Gui_ImageChange(t, path){
 	If ( FileExist(path) ) {
@@ -569,12 +573,12 @@ CTL_LST_Save(t){
 		LV_GetColumnWidth(t)
 	Else If ( CtrType = "TreeView" ) {
 		TV_Save(t)
-		TV_GroupListDestroy(t)
+		TV_DestroyGroupItemList(t)
 	}
 	
 	If (IconUse = 1)
 		IML_Save(IL_Path, himl)
-	ListToFile(t)
+	SaveItemList(t)
 }
 CTL_LST_Load(t){
 	CtrType := t.CtrType
@@ -582,21 +586,21 @@ CTL_LST_Load(t){
 		return
 	
 	CTL_SetActive(t)
-	FileToList(t)
+	LoadItemList(t)
 	If ( CtrType = "TreeView" )
-		TV_GroupListBuild(t)
+		TV_BuildGroupItemList(t)
 }
 Menu_Build(menu, name, extend=""){
-	For i,this in menu {
-		If ( this.Separator )
+	For i,thisItem in menu {
+		If ( thisItem.Separator )
 			MenuAddSeparator(name)
 		Else
-			MenuAdd(name, this.text, this.Label)
+			MenuAdd(name, thisItem.text, thisItem.Label)
 	}
 	If (extend != "") {
-		this := GetMenuFromValue(extend, "name")
+		thisMenu := GetMenuFromValue(extend, "name")
 		MenuAddSeparator(name)
-		Menu_Build(this.menu, name, this.extend)
+		Menu_Build(thisMenu.menu, name, thisMenu.extend)
 	}
 }
 Hotkey_GuiBuild(t){
@@ -609,11 +613,11 @@ Hotkey_GuiBuild(t){
 	CTL_Add(t, "Button", "Cancel", "キャンセル", "Hotkey_Cancel",,,, Pos:={ X: 95, Y: 15 } )
 	CTL_Add(t, "Text", "Text1", "※変更は再起動後に有効",,,,, Pos:={ X: 165, Y: 20 } )
 	
-	For i,this in io.HK {
+	For i in io.HK {
 		X := 15+170*(i-1)
-		CTL_Add(t, "Text", "Category" i, this.text,,,,, Pos:={ X:X, Y:55 } )
+		CTL_Add(t, "Text", "Category" i, io.HK[i].text,,,,, Pos:={ X:X, Y:55 } )
 		
-		For j,thisHotkey in this.hotkeys {
+		For j,thisHotkey in io.HK[i].hotkeys {
 			Y := 80+55*(j-1)
 			CTL_Add(t, "Text", "Text" i "_" j, thisHotkey.text,,,,, Pos:={ X:X, Y:Y } )
 			
@@ -625,8 +629,8 @@ Hotkey_GuiBuild(t){
 	}
 }
 Hotkey_GuiSave(t){
-	For i,this in io.HK {
-		For j,thisHotkey in this.hotkeys {
+	For i in io.HK {
+		For j,thisHotkey in io.HK[i] {
 			Label  := thisHotkey.Label
 			Hotkey := %Label%
 			If (t.Hotkey)
@@ -641,22 +645,22 @@ Hotkey_GuiSave(t){
 
 GetGui(){
 	ID := _WinGetId()
-	For i,this in io.Gui
-		If (this.ID = ID)
-			return this
+	For i,thisGui in io.Gui
+		If (thisGui.ID = ID)
+			return thisGui
 	return
 }
 GetGuiName(){
 	ID := _WinGetId()
-	For i,this in io.Gui
-		If (this.ID = ID)
-			return this
+	For i,thisGui in io.Gui
+		If (thisGui.ID = ID)
+			return thisGui
 	return
 }
 GetGuiFromOption(k, v){
-	For i,this in io.Gui
-		If (this[k] = v)
-			return this
+	For i,thisGui in io.Gui
+		If (thisGui[k] = v)
+			return thisGui
 	return
 }
 GetGuiNum(){
@@ -668,10 +672,10 @@ GetCtrFocus(Gui=""){
 	GuiNum := Gui.GuiNum
 	GuiControlGet, CtrName, %GuiNum%:FocusV
 	
-	For key in Gui.Ctr
-		If (Gui.Ctr[key].CtrName = CtrName)
+	For i,thisCtr in Gui.Ctrs
+		If (thisCtr.CtrName = CtrName)
 			Break
-	return Gui.Ctr[key]
+	return thisCtr
 }
 GetCtrNameFocus(Gui=""){
 	ctr := GetCtrFocus(Gui)
@@ -680,28 +684,28 @@ GetCtrNameFocus(Gui=""){
 GetCtrFromOption(k, v, Gui=""){
 	Gui := ( IsObject(Gui) ) ? Gui : GetGui()
 	
-	For key in Gui.Ctr
-		If (Gui.Ctr[key][k] = v)
+	For i,thisCtr in Gui.Ctrs
+		If (thisCtr[k] = v)
 			Break
-	return Gui.Ctr[key]
+	return thisCtr
 }
 GetCtrAll(){
 	Obj := Object()
-	For i,this in io.Gui
-		For j,thisCtr in this.Ctr
+	For i,thisGui in io.Gui
+		For j,thisCtr in thisGui.Ctrs
 			Obj[ thisCtr.CtrName ] := thisCtr
 	return Obj
 }
 GetMenuFromValue(target, ItemName="text"){
-	For i,this in io.MN
-		If (this[ItemName] = target)
-			return this
+	For i,thisItem in io.MN
+		If (thisItem[ItemName] = target)
+			return thisItem
 	return
 }
 GetHotkeyFromValue(target, ItemName="text"){
-	For i,this in io.HK
-		If (this[ItemName] = target)
-			return this
+	For i,thisItem in io.HK
+		If (thisItem[ItemName] = target)
+			return thisItem
 	return
 }
 
@@ -1325,14 +1329,14 @@ TV_SetItemOption(ID, SetOption, SetValue, list){
 	
 	return 0
 }
-TV_GroupListBuild(t){
+TV_BuildGroupItemList(t){
 	list := t.ItemObj.ItemList
 	For key in list {
 		ID := list[key].ID
 		list[key].GroupList := TV_GetItemAll(ID)
 	}
 }
-TV_GroupListDestroy(t){
+TV_DestroyGroupItemList(t){
 	list := t.ItemObj.ItemList
 	For key in list {
 		list[key].GroupList := Object()
@@ -1359,20 +1363,20 @@ LV_GetColumnWidth(t){
 			Column[i].Width := ErrorLevel
 	}
 }
-FileToList(t){
+LoadItemList(t){
 	file := t.ItemListPath
 	
 	If ( IfExist(file) )
 		t.ItemObj := _ObjFromFile(file)
 }
-ListToFile(t){
+SaveItemList(t){
 	obj    := t.ItemObj
 	file   := t.ItemListPath
 	Backup := (t.NoBackup != "") ? "" : 1
 	
 	_ObjToFile(obj, file, Backup)
 }
-ListDestroy(t){
+DestroyItemList(t){
 	t.Remove("ItemObj")
 }
 
