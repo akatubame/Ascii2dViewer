@@ -552,23 +552,3 @@ _WinMinimizeTray(twnd="A"){
 _Run(runapp, option="", runcmd=""){
 	Run, %runapp% %option%,, %runcmd%
 }
-; 指定のAHK関数を実行
-_ExecFunc(function, args*){
-	
-	; 関数が不存在ならエラー
-	If ( !IsFunc(function) )
-		throw Exception("指定した関数は存在しません : _ExecFunc(""" function """).")
-	
-	; クラス関数なら引数の先頭にダミーを追加
-	If ( IfInString(function, ".") )
-		args.Insert(1, "")
-	
-	; 引数の数量チェック
-	receivedArgs := args.maxIndex() ? args.maxIndex() : 0
-	needArgs     := IsFunc(function) - 1
-	If ( receivedArgs < needArgs )
-		throw Exception("引数の指定が不足しています : _ExecFunc(""" function """).")
-	
-	; 関数の実行結果を返り値に
-	return Func(function).(args*)
-}

@@ -64,6 +64,13 @@ Init:
 		GUI_Show(io.Gui[key])
 	}
 	
+	; データの格納ディレクトリがなければ作成
+	For i,thisItem in [io.ImgDir, io.LogDir, io.ThumbDir] {
+		If ( FileExist(thisItem)!="D" ) {
+			FileCreateDir(thisItem)
+		}
+	}
+	
 	A2.DetailClear("Init") ; 各種コントロールの初期化
 	SB_SetText("読込終了", 1, 2)
 return
