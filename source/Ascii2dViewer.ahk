@@ -1,9 +1,8 @@
-#Persistent
+﻿#Persistent
 #SingleInstance, Force
 ;#NoTrayIcon
 
 #Include *i <CommonHeader>
-#Include *i <PersistentHeader>
 
 ; このアプリ専用のグローバル変数の格納オブジェクト生成
 global A_Init_Object
@@ -24,16 +23,15 @@ io.LogDir        := A_ScriptDir "\" "log"   "\"
 io.ThumbDir      := A_ScriptDir "\" "thumb" "\"
 Menu, Tray, Icon, % A_ScriptDir "\" "Ascii2dViewer.ico"
 
+; 各種テーブル設定を読みこみ
+io.regex := Object()
+io.regex["Ascii2dMD5"]    := FileRead(A_ScriptDir "\" "regex\Ascii2dMD5.txt")
+io.regex["Ascii2dXhtml"]  := FileRead(A_ScriptDir "\" "regex\Ascii2dXhtml.txt")
+io.regex["Ascii2dRename"] := FileRead(A_ScriptDir "\" "regex\Ascii2dRename.txt")
+
 ; 各種グローバル変数の設定
 io.PostUri := "http://www.ascii2d.net/imagesearch/search"
 io.GetUri  := "http://www.ascii2d.net/imagesearch/similar/"
-
-; 各種テーブル設定を読みこみ
-A_Init_Object["Ascii2dGetUrl"] := FileRead(A_ScriptDir "\" "regex\Ascii2dGetUrl.txt")
-A_Init_Object["Ascii2dMD5"]    := FileRead(A_ScriptDir "\" "regex\Ascii2dMD5.txt")
-A_Init_Object["Ascii2dThumb"]  := FileRead(A_ScriptDir "\" "regex\Ascii2dThumb.txt")
-A_Init_Object["Ascii2dXhtml"]  := FileRead(A_ScriptDir "\" "regex\Ascii2dXhtml.txt")
-A_Init_Object["Ascii2dRename"] := FileRead(A_ScriptDir "\" "regex\Ascii2dRename.txt")
 
 ; 動作順序の定義
 Gosub, Init
@@ -66,7 +64,7 @@ Init:
 		GUI_Show(io.Gui[key])
 	}
 	
-	A2.DetailClear("Init")
+	A2.DetailClear("Init") ; 各種コントロールの初期化
 	SB_SetText("読込終了", 1, 2)
 return
 
@@ -78,35 +76,35 @@ return
 ; イベント振分け処理
 Event:
 	; 項目をクリックした時のイベント
-	If (A_GuiEvent = "Normal") {
+	If (A_GuiEvent == "Normal") {
 		
-		If (A_GuiControl = "ImageList") {
+		If (A_GuiControl == "ImageList") {
 			Gosub, A2_ExpandFocus
 		}
-		Else If (A_GuiControl = "DetailList") {
+		Else If (A_GuiControl == "DetailList") {
 			Gosub, A2_DetailFocus
 		}
 	}
 	; 項目をダブルクリックした時のイベント
-	Else If (A_GuiEvent = "DoubleClick") {
+	Else If (A_GuiEvent == "DoubleClick") {
 		
-		If (A_GuiControl = "ImageList") {
+		If (A_GuiControl == "ImageList") {
 			Gosub, A2_OpenFocus
 		}
-		Else If (A_GuiControl = "DetailList") {
+		Else If (A_GuiControl == "DetailList") {
 			Gosub, A2_RenameFocus_LineCopy
 		}
 	}
 	
 	; 項目を矢印上下キーで移動した時のイベント
-	Else If (A_GuiEvent = "K") {
+	Else If (A_GuiEvent == "K") {
 		
 		For i,key in [33, 34, 35, 36, 38, 40] {
-			If (A_EventInfo = key) {
-				If (A_GuiControl = "ImageList") {
+			If (A_EventInfo == key) {
+				If (A_GuiControl == "ImageList") {
 					Gosub, A2_ExpandFocus
 				}
-				Else If (A_GuiControl = "DetailList") {
+				Else If (A_GuiControl == "DetailList") {
 					Gosub, A2_DetailFocus
 				}
 			}
@@ -135,7 +133,7 @@ return
 GuiSize:
 	;Gosub, SetUp
 	; 最小化
-	If (A_EventInfo = 1) {
+	If (A_EventInfo == 1) {
 		return
 	}
 	; それ以外
@@ -155,10 +153,10 @@ return
 ; 右クリックメニュー時のイベント
 GuiContextMenu:
 	; 各種コンテキストメニュー表示
-	If (A_GuiControl = "ImageList") {
+	If (A_GuiControl == "ImageList") {
 		Menu, ImageListContextMenu, Show
 	}
-	Else If (A_GuiControl = "DetailList") {
+	Else If (A_GuiControl == "DetailList") {
 		Menu, DetailListContextMenu, Show
 	}
 	Else {
@@ -368,7 +366,7 @@ OpenFocus(){
 	thisList    := io.ctr.ImageList.ItemObj.ItemList
 	ID          := TV_GetIDFromValue(md5, thisList, "md5")
 	SourceImage := thisList[ID].SourceImage
-	_PochiS(SourceImage)
+	_Run(SourceImage)
 }
 ; 画像リスト内でフォーカスされた画像のURLを取得
 GetUrlFocus(){
@@ -376,10 +374,11 @@ GetUrlFocus(){
 	If (!md5)
 		return 1
 	
-	thisList := io.ctr.ImageList.ItemObj.ItemList
-	ID       := TV_GetIDFromValue(md5, thisList, "md5")
-	ImageURL := thisList[ID].ImageURL
-	_ClipGet(ImageURL)
+	thisList  := io.ctr.ImageList.ItemObj.ItemList
+	ID        := TV_GetIDFromValue(md5, thisList, "md5")
+	ImageURL  := thisList[ID].ImageURL
+	Clipboard := ImageURL
+	;_ClipGet(ImageURL)
 }
 ; ダウンロードしたすべての情報を消去
 DeleteAll(){
@@ -419,7 +418,7 @@ RenameFocus_LineCopy(){
 	
 	thisList := io.ctr.DetailList.ItemObj.ItemList
 	detail   := thisList[ID].detail
-	detail   := _ListReplaceRegex(detail, "", "Ascii2dRename")
+	detail   := _ListReplaceRegex(detail, "", io.regex["Ascii2dRename"])
 	detail   := _OptimizeName(detail)
 	newName  := _Inputbox("元画像のリネーム", "画像のファイル名を入力", detail)
 	A2.Rename(newName)
@@ -436,7 +435,7 @@ Rename(newName=""){
 	SourceImage := thisList[ID].SourceImage
 	
 	; リネーム処理
-	If (newName = "") {
+	If (newName == "") {
 		oldName := thisList[ID].Renamed ? _FileGetNoExt(SourceImage) : ""
 		newName := _Inputbox("元画像のリネーム", "画像のファイル名を入力", oldName)
 	}
@@ -463,9 +462,9 @@ MainDL(){
 }
 ; クリップボードURLの画像を詳細情報ダウンロード
 MainDL_Clip(){
-	count        := 0
-	DownloadImgs := Object()
-	target       := _SelectedOrClipboard()
+	
+	; クリップボードの内容を取得
+	target := _SelectedOrClipboard()
 	
 	; クリップボードがローカルのパス情報であればDrag&Drop
 	If ( IfExist(target) ) {
@@ -474,26 +473,19 @@ MainDL_Clip(){
 	}
 	
 	; クリップボード文字列に含まれるURLの抽出
-	target := _URLExtract(target)
-	Loop, parse, target, `n, `r
-	{
-		If (A_LoopField = "")
-			return
-		ImageURL := A_LoopField
-		
-		count++
-		_AddToObj(DownloadImgs, ImageURL)
-		_AddLine(imgs, ImageURL)
-	}
+	imageUrls := _URLExtract(target)
+	
+	; URLの個数を計算
+	count := _CountLines(imageUrls)
 	
 	; 画像がない場合、画像検索をキャンセルした場合は終了
-	If (count = 0)
+	If (count == 0)
 		return
-	Else If ( !_IfMsgBox(imgs "`n" count "個の画像ファイルを詳細検索しますか？") )
+	Else If ( !_IfMsgBox(imageUrls "`n`n" count "個の画像ファイルを詳細検索しますか？") )
 		return
 	
 	; 抽出URLを一斉詳細検索
-	A2.MainDL_Array(count, DownloadImgs)
+	A2.MainDL_Array(count, imageUrls)
 	
 	; 進捗状況のクリア
 	SB_SetText("", 2, 2)
@@ -506,75 +498,50 @@ MainDL_SelectFile(){
 ; Drag&Dropした画像を詳細情報ダウンロード
 MainDL_Drop(files){
 	
-	; ダウンロード前準備
-	count        := 0
-	DownloadImgs := Object()
-	Loop, parse, files, `n, `r
-	{
-		If (A_LoopField = "")
-			return
-		
-		; 画像のmd5を用いてアップロード後のURLを生成、詳細ダウンロード予定リストに登録
-		count++
-		filename := _HashGetMD5(A_LoopField) "." _FileGetExt(A_LoopField)
-		ImageURL := "http://oteak.xii.jp/image/" filename
-		DownloadImgs[count] := ImageURL
-		;_AddToObj(DownloadImgs, ImageURL)
-		
-		; 画像データを一時保管庫へのアップロード予定リストに登録
-		dest := A_ClipFolder . filename
-		_FileCopy(A_LoopField, dest)
-		_AddLine(UploadImgs, dest)
-		
-		; 画像ファイル名を一時保管庫からの削除予定リストに登録
-		_AddLine(DeleteImgs, filename)
-		
-		; 元画像名を確認表示リストに登録
-		_AddLine(SourceImgs, A_LoopField)
-	}
+	; ファイルの個数を計算
+	count := _CountLines(files)
 	
 	; 画像がない場合、画像検索をキャンセルした場合は終了
-	If (count = 0)
+	If (count == 0)
 		return
-	Else If ( !_IfMsgBox(SourceImgs "`n" count "個の画像ファイルを詳細検索しますか？") )
+	Else If ( !_IfMsgBox(files "`n`n" count "個の画像ファイルを詳細検索しますか？") )
 		return
 	
-	; 画像データを一時保管庫へアップロード
-	SB_SetText("ファイルのアップロード中...", 2, 2)
-	_FTP_FileUpload(UploadImgs, "www/oteak/image")
+	; 画像データをtransfer.shへアップロード
+	Loop, parse, files, `n, `r
+	{
+		SB_SetText(A_Index "/" count "枚目のアップロード中...", 2, 2)
+		url := _UploadImageToTransferSh(A_LoopField)
+		_AddLine(imageUrls, url)
+	}
 	
 	; アップロードした画像のURLを一斉詳細検索
-	A2.MainDL_Array(count, DownloadImgs)
-	
-	; 画像データを一時保管庫から削除
-	SB_SetText("サーバに残ったファイルの削除中...", 2, 2)
-	_FTP_FileDelete(DeleteImgs, "www/oteak/image")
-	
-	; アップロード用に生成した一時ファイルを削除
-	SB_SetText("一時ファイルの削除中...", 2, 2)
-	_FileDeleteArray(UploadImgs,, "NoDialog")
+	A2.MainDL_Array(count, imageUrls)
 	
 	; 進捗状況のクリア
 	SB_SetText("", 2, 2)
 }
 ; 複数の画像を詳細情報ダウンロード
-MainDL_Array(max, DownloadImgs){
-	for i,ImageURL in DownloadImgs {
+MainDL_Array(count, imageUrls){
+	Loop, parse, imageUrls, `n, `r
+	{
+		If (A_LoopField == "")
+			return
 		
 		; 詳細ダウンロード開始
-		SB_SetText(i "/" max "枚目のDL中...", 2, 2)
-		A2.MainDL_Main(ImageURL)
+		SB_SetText(A_Index "/" count "枚目の詳細DL中...", 2, 2)
+		A2.MainDL_Main(A_LoopField)
 		
 		; ダウンロード進捗状況の更新(最後の一枚を除く)
-		If (i != max) {
-			SB_SetText(i "/" max "枚DL完了　次のDLまで5秒待機中...", 2, 2)
+		If (A_Index != count) {
+			SB_SetText(A_Index "/" count "枚DL完了　次の詳細DLまで5秒待機中...", 2, 2)
 			Sleep, 5000
 		}
 	}
 	; 進捗状況のクリア
 	SB_SetText("", 2, 2)
 }
-; 詳細情報ダウンロード処理
+; 詳細情報ダウンロードのメイン処理
 MainDL_Main(ImageURL){
 	
 	; 詳細HTMLデータのダウンロード
@@ -585,14 +552,13 @@ MainDL_Main(ImageURL){
 	
 	; 取得失敗時はエラーメッセージを吐いて終了
 	If ( !elems.maxIndex() ) {
-		_MsgBox(elems.maxIndex)
 		xhtml := "<h1>エラーが発生しました。存在しないか、処理できないURLです。</h1><br><h2><a href=" ImageURL "/>" ImageURL "</a></h2>"
 		Gui_HtmlViewChange(io.ctr.DetailView, xhtml)
 		SB_SetText("ダウンロード失敗", 1, 2)
 		return
 	}
 	
-	; 検索元画像のダウンロード（同名ファイル存在時は上書き）
+	; 検索元画像のダウンロード（可能ならファイル名をMD5にリネーム ※重複を避けるため）
 	SB_SetText("画像サムネイルのダウンロード中...", 1, 2)
 	SourceImage := io.ImgDir . _FileGetName(ImageURL)
 	URLDownloadToFile(ImageURL, SourceImage)
@@ -612,7 +578,7 @@ MainDL_Main(ImageURL){
 	Lv_Add("", key, ImageURL, SourceMD5)
 	LV_Modify(key, "Vis Select Focus")
 	
-	; ------ 以下より詳細情報のDL開始 ------ ;
+	; ------ 以下より詳細画像のDL開始 ------ ;
 	SB_SetText("詳細画像＆追加情報のダウンロード中...", 1, 2)
 	
 	; 詳細リストのクリア
@@ -624,23 +590,25 @@ MainDL_Main(ImageURL){
 	FileCreateDir(dir)
 	
 	; HTMLデータから詳細情報を逐次登録
-	data := Object()
-	data := _ObjFromFile(io.DefList)
+	registData := Object()
+	registData := _ObjFromFile(io.DefList)
 	for i,e in elems {
 		
-		; 詳細画像をダウンロード
-		thumburl := e.getElementsByTagName("img")[0].src
-		thumburl := StringReplace(thumburl, "about:", "http://www.ascii2d.net")
-		md5      := _ListReplaceRegex(thumburl, "regex\Ascii2dMD5.txt")
-		thumb    := dir "\" _FileGetName(thumburl)
-		URLDownloadToFile(thumburl, thumb)
+		; 詳細画像のサムネイルをダウンロード
+		thumbURL := e.getElementsByTagName("img")[0].src
+		thumbURL := StringReplace(thumbURL, "about:", "http://www.ascii2d.net")
+		thumb    := dir "\" _FileGetName(thumbURL)
+		URLDownloadToFile(thumbURL, thumb)
+		
+		; 詳細画像からMD5を抽出
+		md5 := _ListReplaceRegex(thumbURL, "", io.regex["Ascii2dMD5"])
 		
 		; 詳細情報の取得
 		e2     := DOM.getFirstElementByXPath("descendant::div[@class='detail']", e, doc)
 		detail := e2.innerText
 		xhtml  := e2.innerHTML
-		detail := (detail="") ? "＊詳細情報なし" : RegExReplace(detail, "(\n|\r)", "")
-		xhtml  := _ListReplaceRegex(xhtml, "regex\Ascii2dXhtml.txt")
+		detail := (detail=="") ? "＊詳細情報なし" : RegExReplace(detail, "(\n|\r)", "")
+		xhtml  := _ListReplaceRegex(xhtml, "", io.regex["Ascii2dXhtml"])
 		
 		; 掲示板ログから追加情報のダウンロード
 		e3   := e2.getElementsByTagName("a")
@@ -648,19 +616,19 @@ MainDL_Main(ImageURL){
 		If (className := _RegExMatch_Get(href, "\/(ch2|moeren)\/")) {
 			addDoc   := DOM.createDoc(href)
 			addXhtml := DOM.getFirstElementByXPath("//div[@class='" className "']", addDoc).innerHTML
-			addXhtml := _ListReplaceRegex(addXhtml, "regex\Ascii2dXhtml.txt")
+			addXhtml := _ListReplaceRegex(addXhtml, "", io.regex["Ascii2dXhtml"])
 			xhtml    .= "<br>" addXhtml
 		}
 		
 		; 詳細データの登録処理
-		_AddToObj(data.ItemList, { thumb:thumb, md5:md5, thumburl:thumburl, ImageKey:key, xhtml:xhtml, detail:detail, detailkey:"%key%", ID:key } )
+		_AddToObj(registData.ItemList, { thumb:thumb, md5:md5, thumbURL:thumbURL, ImageKey:key, xhtml:xhtml, detail:detail, detailkey:"%key%", ID:key } )
 		Lv_Add("", A_Index, detail, md5, key)
 	}
 	LV_ModifyCol(2) ; 詳細リストの並び替え
 	
 	; 詳細情報をログファイルへ書き込み
 	log := io.LogDir . SourceMD5 . ".ini"
-	_ObjToFile(data, log)
+	_ObjToFile(registData, log)
 	
 	; 最後にDLした画像のビューを表示して終了
 	CTL_SetActive(io.ctr.ImageList)

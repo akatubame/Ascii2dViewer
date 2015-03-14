@@ -1,21 +1,17 @@
-;-------------------------------------------
+﻿;-------------------------------------------
 ; その他自作関数ライブラリ
 ; by akatubame
 ;-------------------------------------------
 ;
 ;-------------------------------------------
-;
-;-------------------------------------------
-; 汎用関数
-;-------------------------------------------
 
-; 複数の文字列をハイフン"-"で連結してメッセージボックスに表示
-_MsgBox(args*){
-	Msg := ""
-	For key, value in args
-		Msg .= value . " - "
-	Msg := StringTrimRight(Msg, 3)
-	MsgBox, % Msg
+; 指定テキストで「OK」or「NO」を選択するメッセージボックスを表示
+_IfMsgBox(text){
+	MsgBox, 4,, %text%
+	IfMsgBox, No
+		return 0
+	Else
+		return 1
 }
 ; 文字列を入力して変数に取得
 _Inputbox(Title="", Prompt="", Default="", Timeout="", Repeat="", HIDE="", Width="", Height="", X="", Y="", Font=""){
@@ -35,7 +31,7 @@ _Inputbox(Title="", Prompt="", Default="", Timeout="", Repeat="", HIDE="", Width
 		Exit
 	
 	; 空文字列を入力した場合、指定スイッチがあればリピート
-	While (OutputVar = "" && Repeat!="") {
+	While (OutputVar == "" && Repeat!="") {
 		InputBox, OutputVar, %Title%, %Prompt%, %HIDE%, %Width%, %Height%, %X%, %Y%,, %Timeout%, %Default%
 		If (ErrorLevel)
 			Exit
@@ -58,9 +54,37 @@ _HttpPost(url, postdata){
 	WinHttpReq.Send(postdata)
 	return WinHttpReq.ResponseText
 }
+; 指定画像ファイルをtransfer.shへアップロード
+_UploadImageToTransferSh(file, newName=""){
+	
+	; アップロード後の指定ファイル名を整形。未指定なら元画像のMD5を使用
+	If (newName != "")
+		newName := _OptimizeNameUpl(newName)
+	Else
+		newName := _HashGetMD5(file) "." _FileGetExt(file)
+	
+	; 画像のバイナリデータを読込
+	img := ComObjCreate("WIA.ImageFile")
+	img.LoadFile(file)
+	postdata := img.filedata.binarydata
+	
+	; 画像のアップロード
+	WinHttpReq := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	WinHttpReq.Open("PUT", "https://transfer.sh/" newName)
+	Try
+		WinHttpReq.Send(postdata)
+	Catch, e
+		throw Exception(file "のアップロードに失敗しました：" e)
+	
+	; アップロード画像のURLを取得
+	imgURL := WinHttpReq.ResponseText
+	imgURL := RegExReplace(imgURL, "(?:\n|\r)$", "")
+	
+	return imgURL
+}
 ; 指定文字列 or ファイルから各種ハッシュ文字列を取得
 _HashGet(target, Hashname){
-	If (target="")
+	If (target=="")
 		return
 	
 	If ( IfExist(target) )
@@ -68,7 +92,7 @@ _HashGet(target, Hashname){
 	Else
 		StrHashCMS(target, CRC, MD5, SHA)
 	
-	return Hashname="CRC" ? CRC : Hashname="MD5" ? MD5 : Hashname="SHA" ? SHA : ""
+	return Hashname=="CRC" ? CRC : Hashname=="MD5" ? MD5 : Hashname=="SHA" ? SHA : ""
 }
 ; 指定文字列 or ファイルからMD5ハッシュを取得
 _HashGetMD5(target){
@@ -81,10 +105,10 @@ _FileRename(fname, newName="", flag=0, PassExt=0){
 	{
 		dir     := _FileGetDir(fname)
 		ext     := _FileGetExt(fname)
-		default := (PassExt = 1) ? _FileGetNoExt(fname) : _FileGetName(fname)
+		default := (PassExt == 1) ? _FileGetNoExt(fname) : _FileGetName(fname)
 		newName := (newName != "") ? newName : _Inputbox("ファイル名の変更", "変更後のファイル名を入力", default)
 		
-		If (Attrib = "D")
+		If (Attrib == "D")
 			FileMoveDir, %fname%, %dir%\%newName%, %flag%
 		Else If (PassExt)
 			FileMove, %fname%, %dir%\%newName%.%ext%, %flag%
@@ -100,7 +124,7 @@ _FileCopy(fname, fname2, flag=0){
 	Attrib := FileExist(fname)
 	If (Attrib)
 	{
-		If (Attrib = "D")
+		If (Attrib == "D")
 			FileCopyDir, %fname%, %fname2%, %flag%
 		Else
 			FileCopy, %fname%, %fname2%, %flag%
@@ -119,7 +143,7 @@ _FileDelete(fname, confirm=""){
 				return 1
 		}
 		
-		If (Attrib = "D")
+		If (Attrib == "D")
 			FileRemoveDir, %fname%, 1
 		Else
 			FileDelete, %fname%
@@ -128,6 +152,11 @@ _FileDelete(fname, confirm=""){
 	}
 	Else
 		return 0
+}
+; 指定ワードを内容に持つファイルを新規作成 ( data=書き込む内容, fname=生成するファイル, enc=文字コード )
+_FileNewAppend(data, fname, enc=""){
+	FileDelete, %fname%
+	FileAppend, %data%, %fname%, %enc%
 }
 ; ダイアログからファイルを選択
 _FileSelectFile(Path="", Prompt="", Filter=""){
@@ -161,38 +190,6 @@ _FileGetDrive(path){
 	SplitPath(path, name, dir, ext, noext, drive)
 	return _RemoveSpace(drive)
 }
-; 指定ファイル(複数可)を削除
-_FileDeleteArray(target, confirm="", NoDialog=""){
-	If (!target)
-		return
-	
-	If (confirm) {
-		Count := 0
-		Loop, parse, target, `n, `r
-		{
-			if (A_LoopField = "")
-				continue
-			
-			_AddLine(files, A_LoopField)
-			Count++
-		}
-		
-		If ( !_IfMsgBox(files "`n" "これら" Count "個のファイルを削除しますか？") )
-			return 0
-	}
-	
-	Count2 := 0
-	Loop, parse, target, `n, `r
-	{
-		if (A_LoopField = "")
-			continue
-		
-		If ( !_FileDelete(A_LoopField) )
-			Count2++
-	}
-	If (NoDialog = "")
-		_MsgBox(Count2 "個のファイルの削除が終了しました")
-}
 ; 指定フォーマットの文字列をオブジェクトに格納
 _ObjFromStr(String, Rows="`n", Equal="=", Indent="`t"){
 	obj := [], kn := []
@@ -204,49 +201,49 @@ _ObjFromStr(String, Rows="`n", Equal="=", Indent="`t"){
 		Field := RTrim(A_LoopField, " `t`r")
 		
 		CurLevel := 1, k := "", v := ""
-		While (SubStr(Field,1,IndentLen) = Indent) {
+		While (SubStr(Field,1,IndentLen) == Indent) {
 			StringTrimLeft, Field, Field, %IndentLen%
 			CurLevel++
 		}
 		
 		EqualPos := InStr(Field, Equal)
-		if (EqualPos = 0)
+		if (EqualPos == 0)
 			k := Field
 		else
 			k := SubStr(Field, 1, EqualPos-1), v := SubStr(Field, EqualPos+1)
 		
 		k := Trim(k, " `t`r"), v := Trim(v, " `t`r")
 		kn[CurLevel] := k
-		if !(EqualPos = 0)
+		if !(EqualPos == 0)
 		{
-			if (CurLevel = 1)
+			if (CurLevel == 1)
 			obj[kn.1] := v
-			else if (CurLevel = 2)
+			else if (CurLevel == 2)
 			obj[kn.1][k] := v
-			else if (CurLevel = 3)
+			else if (CurLevel == 3)
 			obj[kn.1][kn.2][k] := v
-			else if (CurLevel = 4)
+			else if (CurLevel == 4)
 			obj[kn.1][kn.2][kn.3][k] := v
-			else if (CurLevel = 5)
+			else if (CurLevel == 5)
 			obj[kn.1][kn.2][kn.3][kn.4][k] := v
-			else if (CurLevel = 6)
+			else if (CurLevel == 6)
 			obj[kn.1][kn.2][kn.3][kn.4][kn.5][k] := v
-			else if (CurLevel = 7)
+			else if (CurLevel == 7)
 			obj[kn.1][kn.2][kn.3][kn.4][kn.5][kn.6][k] := v
 		}
 		else
 		{
-			if (CurLevel = 1)
+			if (CurLevel == 1)
 			obj.Insert(kn.1,Object())
-			else if (CurLevel = 2)
+			else if (CurLevel == 2)
 			obj[kn.1].Insert(kn.2,Object())
-			else if (CurLevel = 3)
+			else if (CurLevel == 3)
 			obj[kn.1][kn.2].Insert(kn.3,Object())
-			else if (CurLevel = 4)
+			else if (CurLevel == 4)
 			obj[kn.1][kn.2][kn.3].Insert(kn.4,Object())
-			else if (CurLevel = 5)
+			else if (CurLevel == 5)
 			obj[kn.1][kn.2][kn.3][kn.4].Insert(kn.5,Object())
-			else if (CurLevel = 6)
+			else if (CurLevel == 6)
 			obj[kn.1][kn.2][kn.3][kn.4][kn.5].Insert(kn.6,Object())
 		}
 	}
@@ -274,12 +271,6 @@ _ObjFromFile(FilePath, Rows="`n", Equal="=", Indent="`t"){
 	String := FileRead(FilePath)
 	return _ObjFromStr(String, Rows, Equal, Indent)
 }
-; 指定文字列をクリップボードへ
-_Clip(target,time=0.1){
-	Clipboard := ""
-	Clipboard := target
-	ClipWait, %time%
-}
 ; 選択文字列をクリップボードへ
 _ClipCopy(time=0.1){
 	Clipboard := ""
@@ -299,29 +290,13 @@ _SelectedOrClipboard(time=0.1){
 _AddLine(ByRef target, line){
 	target .= line "`n"
 }
-; 指定文字列をダブルクォーテーション[""]で囲む
-_WQ(str){
-	;コマンドラインの場合は空白でも囲むべき
-	;If (str="")
-	;	return
-	
-	StringGetPos, start, str, ", L
-	If (ErrorLevel = 0) {
-		StringLen, Length, str
-		StringGetPos, end, str, ", R
-		If (start = 0 && end = Length-1)
-			return str
-	}
-	str = "%str%"
-	return str
-}
 ; 指定文字列を、指定区切り記号ごとに分解後オブジェクト配列に格納
 _StringSplit(InputVar, Delimiters, OmitChars=""){
 	StringSplit, Array, InputVar, %Delimiters%, %OmitChars%
 	Obj := []
 	Loop {
 		p := Array%A_Index%
-		If (p = "")
+		If (p == "")
 			Break
 		Obj.Insert(p)
 	}
@@ -332,8 +307,8 @@ _StringSplitCombine(target, SplitChar){
 	target := StringReplace(target, SplitChar, "", 1)
 	Loop, parse, target, 
 		If (A_LoopField != "" && A_LoopField != "h")
-			_AddLine(text, SplitChar . A_LoopField)
-	return text
+			_AddLine(str, SplitChar . A_LoopField)
+	return str
 }
 ; 指定文字列(複数)を指定区切り記号で繋げて連結
 _StringCombine(Delimiters, args*){
@@ -345,36 +320,34 @@ _StringCombine(Delimiters, args*){
 	str := StringTrimRight(str, Length)
 	return str
 }
-; 指定コマンドラインオプション(複数)をダブルクォーテーション[""]で囲み連結
-_OptionCombine(args*){
-	option := ""
-	For key, value in args
-		option .= _WQ(value) . " "
-	option := StringTrimRight(option, 1)
-	return option
+; 指定文字列の行数を取得
+_CountLines(str){
+	StringReplace, str, str, `n, `n, UseErrorLevel
+	Return ErrorLevel + 1
 }
 ; 指定文字列から無駄なスペースや改行を取り除く
-_RemoveSpace(text){
-	text := StringReplace(text, """""", , "All")
-	text := StringReplace(text, "　", A_Space, "All")
-	text := StringReplace(text, "`r", , "All")
-	text := StringReplace(text, "`n", , "All")
-	text := RegExReplace(text, " +", " ")
-	text := RegExReplace(text, "^\s", "")
-	text := RegExReplace(text, "\s$", "")
-	return text
+_RemoveSpace(str){
+	str := StringReplace(str, """""", , "All")
+	str := StringReplace(str, "　", A_Space, "All")
+	str := StringReplace(str, "`r", , "All")
+	str := StringReplace(str, "`n", , "All")
+	str := RegExReplace(str, " +", " ")
+	str := RegExReplace(str, "^\s", "")
+	str := RegExReplace(str, "\s$", "")
+	return str
 }
-; 複数改行を単改行に変換
+; 指定文字列から複数改行を単改行に変換
 _RemoveIndent(str){
-	str2 := ""
+	result := ""
 	Loop, Parse, str, `n, `r
 	{
-		If (A_LoopField="")
+		If (A_LoopField=="")
 			Continue
-		_AddLine(str2, A_LoopField)
+		
+		_AddLine(result, A_LoopField)
 	}
-	str2 := StringTrimRight(str2, 1)
-	return str2
+	result := RegExReplace(result, "(?:\n|\r)$", "")
+	return result
 }
 ; 指定文字列からファイル名使用不可文字を削除する
 _RemoveIllegalChar(var){
@@ -387,18 +360,28 @@ _RemoveIllegalChar(var){
 	return var
 }
 ; 指定文字列を検索語に適した文字列に整形する
-_OptimizeChar(text){
-	text := _ListReplace(text,, "OptimizeReplace")
-	text := _ListReplaceRegex(text,, "OptimizeRegex")
-	text := _RemoveSpace(text)
-	return text
+_OptimizeChar(str){
+	str := _ListReplace(str,, A_Init_Object["OptimizeReplace"])
+	str := _ListReplaceRegex(str,, A_Init_Object["OptimizeRegex"])
+	str := _RemoveSpace(str)
+	return str
 }
 ; 指定文字列をファイル名に適した文字列に整形する
-_OptimizeName(text){
-	text := _OptimizeChar(text)
-	text := _ListReplace(text,, "OptimizeName")
-	text := _RemoveIllegalChar(text)
-	return text
+_OptimizeName(str){
+	str := _OptimizeChar(str)
+	str := _ListReplace(str,, A_Init_Object["OptimizeName"])
+	str := _RemoveIllegalChar(str)
+	return str
+}
+; 指定ファイル名をアップロードに適した文字列に整形する
+_OptimizeNameUpl(str){
+	str := _RegExEscapeZenkaku(str)
+	str := _ListReplace(str,, A_Init_Object["OptimizeNameUpl"])
+	return str
+}
+; 指定文字列から全角文字を消去
+_RegExEscapeZenkaku(Target){
+	return RegExReplace(Target, "[^\x20-\x7e]", "")
 }
 ; 指定文字列から、指定正規表現でマッチした行のみ抽出
 _RegexExtract(target, Pattern=""){
@@ -409,9 +392,9 @@ _RegexExtract(target, Pattern=""){
 	
 	Loop, parse, target, `n, `r
 		If ( RegExMatch(A_LoopField, Pattern) )
-			_AddLine(text, A_LoopField)
+			_AddLine(str, A_LoopField)
 	
-	return text
+	return str
 }
 ; 指定文字列から、指定正規表現で正規変換した行のみ抽出
 _RegexExtractReplace(target, Pattern="", Replacement=""){
@@ -425,19 +408,19 @@ _RegexExtractReplace(target, Pattern="", Replacement=""){
 	Loop, parse, target, `n, `r
 		If ( RegExMatch(A_LoopField, Pattern) ) {
 			target := RegExReplace(A_LoopField, Pattern, Replacement)
-			_AddLine(text, target)
+			_AddLine(str, target)
 		}
 	
-	return text
+	return str
 }
 ; 指定文字列からURLを抽出
-_URLExtract(text){
-	;text := _RegexExtractReplace(text, "^.*(ttps?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:&=+\`$,`%#]+).*$", "h$1")
-	text := _RegexExtract(text, "(ttps?:\/\/[-_.!~*a-zA-Z0-9\/?&=+\`$,`%#]+)")
-	;text := _StringSplitCombine(text, "://")
-	text := _RegexExtractReplace(text, "^.*ttp(s?:\/\/[-_.!~*a-zA-Z0-9\/?&=+\`$,`%#]+).*$", "http$1")
-	text := _RemoveIndent(text)
-	return text
+_URLExtract(str){
+	;str := _RegexExtractReplace(str, "^.*(ttps?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:&=+\`$,`%#]+).*$", "h$1")
+	str := _RegexExtract(str, "(ttps?:\/\/[-_.!~*a-zA-Z0-9\/?&=+\`$,`%#]+)")
+	;str := _StringSplitCombine(str, "://")
+	str := _RegexExtractReplace(str, "^.*ttp(s?:\/\/[-_.!~*a-zA-Z0-9\/?&=+\`$,`%#]+).*$", "http$1")
+	str := _RemoveIndent(str)
+	return str
 }
 ; 指定ディレクトリを基準とした相対パスを絶対パスに変換
 _RelToAbs_From(root, dir, s = "\"){
@@ -447,21 +430,21 @@ _RelToAbs_From(root, dir, s = "\"){
 
 	pr := SubStr(root, 1, len := InStr(root, s, "", InStr(root, s . s) + 2) - 1)
 		, root := SubStr(root, len + 1)
-	If InStr(root, s, "", 0) = StrLen(root)
+	If InStr(root, s, "", 0) == StrLen(root)
 		root := StringTrimRight(root, 1)
-	If InStr(dir, s, "", 0) = StrLen(dir)
+	If InStr(dir, s, "", 0) == StrLen(dir)
 		dir := StringTrimRight(dir, 1)
 	sk := 0
 	Loop, Parse, dir, %s%
 	{
-		If A_LoopField = ..
+		If A_LoopField == ..
 		{
 			StringLeft, root, root, InStr(root, s, "", 0) - 1
 			sk += 3
 		}
-		Else If A_LoopField = .
+		Else If A_LoopField == .
 			sk += 2
-		Else If A_LoopField =
+		Else If A_LoopField == ""
 		{
 			root =
 			sk++
@@ -470,7 +453,7 @@ _RelToAbs_From(root, dir, s = "\"){
 	dir := StringTrimLeft(dir, sk)
 	
 	Abs := pr . root . s . dir
-	If InStr(Abs, s, "", 0) = StrLen(Abs)
+	If InStr(Abs, s, "", 0) == StrLen(Abs)
 		Abs := StringTrimRight(Abs, 1)
 	
 	Return, Abs
@@ -480,16 +463,16 @@ _RelToAbs(Path){
 	return % _RelToAbs_From(A_WorkingDir, Path, "\")
 }
 ; 指定文字列を指定リスト(置換前と後の文字列一覧)を参照して一括置換
-_ListReplace(str, list="", objName=""){
-	target := A_Init_Object[objName]
-	If ( target="" ) {
-		list   := IfExist(list) ? list : _FileSelectFile("replace", "置換リストを開く", "テキストドキュメント (*.txt)")
-		target := FileRead(list)
+_ListReplace(str, list="", ruleText=""){
+	replaceRule := ruleText
+	If ( replaceRule=="" ) {
+		list        := IfExist(list) ? list : _FileSelectFile("replace", "置換リストを開く", "テキストドキュメント (*.txt)")
+		replaceRule := FileRead(list)
 	}
 	
-	Loop, parse, target, `n, `r
+	Loop, parse, replaceRule, `n, `r
 	{
-		If (A_LoopField = "")
+		If (A_LoopField == "")
 			continue
 		
 		StringSplit, rule, A_LoopField, %A_Tab%
@@ -500,16 +483,16 @@ _ListReplace(str, list="", objName=""){
 	return str
 }
 ; 指定文字列を指定リスト(置換前と後の正規表現一覧)を参照して一括正規置換
-_ListReplaceRegex(str, list="", objName=""){
-	target := A_Init_Object[objName]
-	If ( target="" ) {
-		list   := IfExist(list) ? list : _FileSelectFile("regex", "正規表現リストを開く", "テキストドキュメント (*.txt)")
-		target := FileRead(list)
+_ListReplaceRegex(str, list="", ruleText=""){
+	replaceRule := ruleText
+	If ( replaceRule=="" ) {
+		list        := IfExist(list) ? list : _FileSelectFile("regex", "正規表現リストを開く", "テキストドキュメント (*.txt)")
+		replaceRule := FileRead(list)
 	}
 	
-	Loop, parse, target, `n, `r
+	Loop, parse, replaceRule, `n, `r
 	{
-		If (A_LoopField = "")
+		If (A_LoopField == "")
 			continue
 		
 		StringSplit, rule, A_LoopField, %A_Tab%
@@ -526,11 +509,6 @@ _ListReplaceRegex(str, list="", objName=""){
 _RegExMatch_Get(Target, Pattern){
 	RegExMatch(Target, Pattern, $)
 	return $1
-}
-; 指定文字列をクリップボードに入れてツールチップ表示
-_ClipGet(target){
-	_Clip(target)
-	_Tooltip(target, 700)
 }
 ; 指定オブジェクトの最後尾に要素を挿入
 _AddToObj(obj, target*){
@@ -573,60 +551,6 @@ _WinMinimizeTray(twnd="A"){
 ; 指定コマンドを実行
 _Run(runapp, option="", runcmd=""){
 	Run, %runapp% %option%,, %runcmd%
-}
-; 指定コマンドを実行、終了までウェイト
-_RunWait(runapp, option="", runcmd=""){
-	RunWait, %runapp% %option%,, %runcmd%
-}
-; 指定コマンドを作業フォルダを指定して実行
-_RunIn(runapp, option="", runcmd="", dir=""){
-	If (dir="")
-		dir := _FileGetDir(runapp)
-	Run, %runapp% %option%, %dir%, %runcmd%
-}
-; 指定ファイルをポチエスに渡して実行 [ポチエス]
-_PochiS(target){
-	If (target != "")
-		IfExist, %target%
-			_RunIn("..\esExt5\esExt5.exe", _WQ( _RelToAbs(target) ) )
-}
-; 指定ファイルをEmEditorで開く [EmEditor]
-_EmEditor(target, line=""){
-	Loop, parse, target, `n, `r
-	{
-		if (A_LoopField = "")
-			continue
-		
-		IfExist, %A_LoopField%
-		{
-			path := _WQ( _RelToAbs(A_LoopField) )
-			If (line)
-				line := "/l " . line
-			option := _OptionCombine( path, line )
-			_RunIn("..\EmEditor_Portable\EmEditor.exe", option )
-		}
-	}
-}
-; スタンドアロンでAHK関数を実行
-_AHK_SA(function, args*){
-	_AHK("AHK_StandAlone",, function, args*)
-}
-; ツールチップを指定時間のみ表示
-_ToolTip(target, interval=1000){
-	_AHK_SA("_ToolTip_Main", target, interval)
-}
-; AHKスクリプト実行
-_AHK(fname, wait="", args*){
-	IfNotInString, fname, \
-		script := "util\" fname ".ahk"
-	Else
-		script := _RelToAbs(fname)
-	
-	option := _OptionCombine(args*)
-	If (wait)
-		_RunWait("AutoHotKey.exe", script " " option)
-	Else
-		_Run("AutoHotKey.exe", script " " option)
 }
 ; 指定のAHK関数を実行
 _ExecFunc(function, args*){

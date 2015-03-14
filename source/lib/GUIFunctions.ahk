@@ -39,7 +39,7 @@ GUI_Build:
 	io.thisGui.ID   := WinExist()
 	io.thisGui.Hwnd := "ahk_id " io.thisGui.ID
 	t.Hwnd          := io.thisGui.Hwnd
-	If (NotGroup = "")
+	If (NotGroup == "")
 		GroupAdd, GuiGroup, % io.thisGui.Hwnd
 	
 	; GUIの初期情報の適用
@@ -60,12 +60,12 @@ CTL_Build:
 	Pos          := t.Pos
 	
 	; 各種コントロール準備処理
-	If (CtrType = "ListView" or CtrType = "TreeView") {
+	If (CtrType == "ListView" or CtrType == "TreeView") {
 		IconUse := t.Icon.Use
 		AddTags := t.AddTags
 		
 		LoadItemList(t)
-		If (CtrType = "ListView")
+		If (CtrType == "ListView")
 			CtrText := LV_GetColumnName(t)
 		
 		If (IconUse) {
@@ -81,9 +81,9 @@ CTL_Build:
 				t.Icon.IL_Reflesh := 1
 			}
 			
-			If (CtrType = "ListView")
+			If (CtrType == "ListView")
 				LV_SetImageList(himl, 1)
-			Else If (CtrType = "TreeView")
+			Else If (CtrType == "TreeView")
 				CtrOption .= " " . "ImageList" . himl
 			
 			t.Icon.himl := himl
@@ -101,15 +101,15 @@ CTL_Build:
 	CTL_Size(t)
 	
 	; 各種コントロール後処理
-	If (CtrType = "ListView" or CtrType = "TreeView") {
+	If (CtrType == "ListView" or CtrType == "TreeView") {
 		CTL_LST_Build(t)
-		If ( CtrType = "TreeView" )
+		If ( CtrType == "TreeView" )
 			TV_BuildGroupItemList(t)
 	}
-	Else If (CtrType = "Picture") {
+	Else If (CtrType == "Picture") {
 		t.Picture.CurrentImg := CtrText
 	}
-	Else If (CtrType = "StatusBar") {
+	Else If (CtrType == "StatusBar") {
 		SB_SetText("", 1, 2)
 		If (SB_SetParts != "") {
 			args := _StringSplit(SB_SetParts, " ")
@@ -156,13 +156,13 @@ return
 GUI_Destroy:
 	; GUI保存情報の定義
 	io.SaveGuiData := ["ID", "Hwnd", "PosOption"]
-	io.SaveCtrData := ["GuiNum", "GuiName", "ControlID", "Hwnd", "ItemObj", "PosOption", "doc", "ItemObj", "ItemList"]
+	io.SaveCtrData := ["GuiNum", "GuiName", "ControlID", "Hwnd", "PosOption", "doc", "ItemObj", "ItemList"]
 	
 	; 不要データ破棄処理
 	For i,thisGui in io.Gui {
 		For j in thisGui {
 			For key,val in io.SaveGuiData {
-				If (j = val) {
+				If (j == val) {
 					thisGui.Remove(j)
 					Break
 				}
@@ -171,7 +171,7 @@ GUI_Destroy:
 		For j,thisCtr in thisGui.Ctrs {
 			For k in thisCtr {
 				For key,val in io.SaveCtrData {
-					If (k = val) {
+					If (k == val) {
 						thisCtr.Remove(k)
 						Break
 					}
@@ -486,8 +486,8 @@ GUI_PosAddOption(t){
 				}
 				Else If ( CtrType != "" ) {
 					v := StringReplace(v, "%", "", "UseErrorLevel")
-					If (ErrorLevel = 1)
-						v := (k = "w") ? A_GuiWidth / 100 * v : (k = "h") ? A_GuiHeight / 100 * v : ""
+					If (ErrorLevel == 1)
+						v := (k == "w") ? A_GuiWidth / 100 * v : (k == "h") ? A_GuiHeight / 100 * v : ""
 					If (v != "")
 						t.PosOption .= " " k v
 				}
@@ -506,9 +506,9 @@ CTL_SetActive(t){
 	CtrName := t.CtrName
 	CtrType := t.CtrType
 	
-	If (CtrType = "Hotkey")
+	If (CtrType == "Hotkey")
 		return
-	Else If (CtrType = "text")
+	Else If (CtrType == "text")
 		return
 	
 	Gui, %GuiNum%:Default
@@ -543,13 +543,13 @@ CTL_LST_Build(t){
 	GuiControl, %GuiNum%:-Redraw, %CtrName%
 	
 	; リストビュー
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		LV_Delete()
 		LV_AddFromList(t)
 		LV_Modify(1, "Focus")
 	}
 	; ツリービュー
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		TV_Save(t)
 		TV_Delete()
 		TV_AddFromList(list, "", t)
@@ -569,14 +569,14 @@ CTL_LST_Save(t){
 		return
 	
 	CTL_SetActive(t)
-	If ( CtrType = "ListView" )
+	If ( CtrType == "ListView" )
 		LV_GetColumnWidth(t)
-	Else If ( CtrType = "TreeView" ) {
+	Else If ( CtrType == "TreeView" ) {
 		TV_Save(t)
 		TV_DestroyGroupItemList(t)
 	}
 	
-	If (IconUse = 1)
+	If (IconUse == 1)
 		IML_Save(IL_Path, himl)
 	SaveItemList(t)
 }
@@ -587,7 +587,7 @@ CTL_LST_Load(t){
 	
 	CTL_SetActive(t)
 	LoadItemList(t)
-	If ( CtrType = "TreeView" )
+	If ( CtrType == "TreeView" )
 		TV_BuildGroupItemList(t)
 }
 Menu_Build(menu, name, extend=""){
@@ -624,7 +624,7 @@ Hotkey_GuiBuild(t){
 			If (t.Hotkey != "")
 				CTL_Add(t, "Hotkey", thisHotkey.Label, thisHotkey.KeyName,,,,, Pos:={ X:X, Y:Y+18 } )
 			Else
-				CTL_Add(t, "Edit", thisHotkey.Label, _ListReplace(thisHotkey.KeyName,, "HotkeyTrans"),,,,, Pos:={ X:X, Y:Y+18, W:120 } )
+				CTL_Add(t, "Edit", thisHotkey.Label, _ListReplace(thisHotkey.KeyName,, A_Init_Object["HotkeyTrans"]),,,,, Pos:={ X:X, Y:Y+18, W:120 } )
 		}
 	}
 }
@@ -636,7 +636,7 @@ Hotkey_GuiSave(t){
 			If (t.Hotkey)
 				thisHotkey.KeyName := Hotkey
 			Else
-				thisHotkey.KeyName := _ListReplaceRegex(Hotkey,, "HotkeyTransRev")
+				thisHotkey.KeyName := _ListReplaceRegex(Hotkey,, A_Init_Object["HotkeyTransRev"])
 		}
 	}
 }
@@ -646,20 +646,20 @@ Hotkey_GuiSave(t){
 GetGui(){
 	ID := _WinGetId()
 	For i,thisGui in io.Gui
-		If (thisGui.ID = ID)
+		If (thisGui.ID == ID)
 			return thisGui
 	return
 }
 GetGuiName(){
 	ID := _WinGetId()
 	For i,thisGui in io.Gui
-		If (thisGui.ID = ID)
+		If (thisGui.ID == ID)
 			return thisGui
 	return
 }
 GetGuiFromOption(k, v){
 	For i,thisGui in io.Gui
-		If (thisGui[k] = v)
+		If (thisGui[k] == v)
 			return thisGui
 	return
 }
@@ -673,7 +673,7 @@ GetCtrFocus(Gui=""){
 	GuiControlGet, CtrName, %GuiNum%:FocusV
 	
 	For i,thisCtr in Gui.Ctrs
-		If (thisCtr.CtrName = CtrName)
+		If (thisCtr.CtrName == CtrName)
 			Break
 	return thisCtr
 }
@@ -685,7 +685,7 @@ GetCtrFromOption(k, v, Gui=""){
 	Gui := ( IsObject(Gui) ) ? Gui : GetGui()
 	
 	For i,thisCtr in Gui.Ctrs
-		If (thisCtr[k] = v)
+		If (thisCtr[k] == v)
 			Break
 	return thisCtr
 }
@@ -698,13 +698,13 @@ GetCtrAll(){
 }
 GetMenuFromValue(target, ItemName="text"){
 	For i,thisItem in io.MN
-		If (thisItem[ItemName] = target)
+		If (thisItem[ItemName] == target)
 			return thisItem
 	return
 }
 GetHotkeyFromValue(target, ItemName="text"){
 	For i,thisItem in io.HK
-		If (thisItem[ItemName] = target)
+		If (thisItem[ItemName] == target)
 			return thisItem
 	return
 }
@@ -737,13 +737,13 @@ PasteFocusList(t){
 	
 	If ( !IsObject(Obj) )
 		return
-	If (IconUse = 1)
+	If (IconUse == 1)
 		t.Icon.IL_Reflesh := 1
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		return
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -760,18 +760,18 @@ InsertFocus(t, target=""){
 	IconUse := t.Icon.Use
 	target  := target ? target : _Inputbox("アイテムの挿入", "挿入するアイテム名を入力してください", Clipboard)
 	
-	If (IconUse = 1)
+	If (IconUse == 1)
 		t.Icon.IL_Reflesh := 1
 	If (AddTags)
 		target := QuoteTags(target, t)
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		;key  := LV_GetSelectKey(t) + 1
 		;Jump := _GetMaxIndex(list) - key + 2
 		;obj  := Object()
 		;For i in Column {
 		;	name    := Column[i].Key
-		;	Default := (Column[i].Default = "%target%") ? target : Column[i].Default
+		;	Default := (Column[i].Default == "%target%") ? target : Column[i].Default
 		;	obj[name] := Default
 		;}
 		;_AddToObj(Insert, obj)
@@ -779,7 +779,7 @@ InsertFocus(t, target=""){
 		;LV_Modify(Jump, "Vis Select Focus")
 		return
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -796,15 +796,15 @@ InFocus(t, target=""){
 	IconUse := t.Icon.Use
 	target  := target ? target : _Inputbox("階層直下にアイテムを挿入", "挿入するアイテム名を入力してください", Clipboard)
 	
-	If (IconUse = 1)
+	If (IconUse == 1)
 		t.Icon.IL_Reflesh := 1
 	If (AddTags)
 		target := QuoteTags(target, t)
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		return
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -822,14 +822,14 @@ DeleteFocus(t){
 	CtrType := t.CtrType
 	list    := t.ItemObj.ItemList
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		key  := LV_GetSelectKey(t)
 		Jump := _GetMaxIndex(list) + 1 - key
 		list.Remove(key)
 		CTL_LST_Build(t)
 		LV_Modify(Jump, "Vis Select Focus")
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -843,14 +843,14 @@ SetNameFocus(t){
 	AddTags := t.AddTags
 	list    := t.ItemObj.ItemList
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		key  := LV_GetSelectKey(t)
 		Jump := _GetMaxIndex(list) + 1 - key
 		list[key].Val := _Inputbox("選択アイテムのリネーム", "アイテム名を入力してください", list[key].Val)
 		CTL_LST_Build(t)
 		LV_Modify(Jump, "Vis Select Focus")
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -872,7 +872,7 @@ SetIconFocus(t){
 	If (IconUse != 1)
 		return
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		key     := LV_GetSelectKey(t)
 		Jump    := _GetMaxIndex(list) + 1 - key
 		path    := list[key].IconPath ? list[key].IconPath : BaseIcon
@@ -885,7 +885,7 @@ SetIconFocus(t){
 		CTL_LST_Build(t)
 		LV_Modify(Jump, "Vis Select Focus")
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID         := TV_GetSelection()
 		key        := TV_GetItemKey(ID, list)
 		ParentList := TV_GetParentList(ID, list)
@@ -905,9 +905,9 @@ MoveFocus(mode, t){
 	list    := t.ItemObj.ItemList
 	tmpObj  := Object()
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		key       := LV_GetSelectKey(t)
-		targetKey := (mode = "Up") ? key + 1 : (mode = "Down") ? key - 1 : 0
+		targetKey := (mode == "Up") ? key + 1 : (mode == "Down") ? key - 1 : 0
 		Jump      := _GetMaxIndex(list) + 1 - TargetKey
 		
 		tmpObj          := list[targetKey]
@@ -916,10 +916,10 @@ MoveFocus(mode, t){
 		CTL_LST_Build(t)
 		LV_Modify(Jump, "Vis Select Focus")
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID       := TV_GetSelection()
 		key      := TV_GetItemKey(ID, list)
-		targetID := (mode = "Up") ? TV_GetPrev(ID) : (mode = "Down") ? TV_GetNext(ID) : 0
+		targetID := (mode == "Up") ? TV_GetPrev(ID) : (mode == "Down") ? TV_GetNext(ID) : 0
 		If (targetID != 0) {
 			targetKey  := TV_GetItemKey(targetID, list)
 			ParentList := TV_GetParentList(ID, list)
@@ -934,7 +934,7 @@ MoveFocus(mode, t){
 }
 EditItemList(t){
 	file := t.ItemListPath
-	_EmEditor(file)
+	_Run(file)
 }
 
 ;--- アイテムリスト専用・アイテム取得関数 ---;
@@ -945,16 +945,16 @@ GetFocus(t, target){
 	CtrType := t.CtrType
 	
 	Gui, %GuiNum%:%CtrType%, %CtrName%
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		ID := LV_GetNext("", F)
 		If (ID)
 			LV_GetText( ret, ID, target )
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID := TV_GetSelection()
-		If ( target = "text" )
+		If ( target == "text" )
 			TV_GetText(ret, ID)
-		Else If ( target = "ID" )
+		Else If ( target == "ID" )
 			ret := ID
 	}
 	
@@ -963,9 +963,9 @@ GetFocus(t, target){
 GetFocusItem(t, ColumnNumber = 1){
 	CtrType := t.CtrType
 	
-	If (CtrType = "ListView")
+	If (CtrType == "ListView")
 		text := GetFocus(t, ColumnNumber)
-	Else If (CtrType = "TreeView")
+	Else If (CtrType == "TreeView")
 		text := GetFocus(t, "text")
 	
 	return text
@@ -973,19 +973,19 @@ GetFocusItem(t, ColumnNumber = 1){
 GetFocusID(t){
 	CtrType := t.CtrType
 	
-	If (CtrType = "ListView")
+	If (CtrType == "ListView")
 		return
-	Else If (CtrType = "TreeView")
+	Else If (CtrType == "TreeView")
 		ID := GetFocus(t, "ID")
 	
 	return ID
 }
 GetItemAll(t){
 	CtrType := t.CtrType
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		list := t.ItemObj.ItemList
 	}
-	Else If (CtrType = "TreeView") {
+	Else If (CtrType == "TreeView") {
 		ID   := GetFocusID(t)
 		list := TV_GetItemAll(ID)
 	}
@@ -997,78 +997,78 @@ LV_GetSelectKey(t){
 	return key
 }
 LV_GetItemKey(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list
-		If (ID = list[key].ID)
+		If (ID == list[key].ID)
 			return key
 	return
 }
 LV_GetItemKeyFromText(text, list){
-	If (text = "")
+	If (text == "")
 		return
 	
 	For key in list
-		If (text = list[key].Val)
+		If (text == list[key].Val)
 			return key
 	return
 }
 TV_GetGroup(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	ID := TV_GetParentTop(ID)
 	For key in list
-		If (ID = list[key].ID)
+		If (ID == list[key].ID)
 			return list[key]
 	return
 }
 TV_GetGroupList(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	ID := TV_GetParentTop(ID)
 	For key in list
-		If (ID = list[key].ID)
+		If (ID == list[key].ID)
 			return list[key].GroupList
 	return
 }
 TV_GetGroupName(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	ID := TV_GetParentTop(ID)
 	For key in list
-		If (ID = list[key].ID)
+		If (ID == list[key].ID)
 			return list[key].GroupName
 	return
 }
 TV_GetGroupOption(ID, GetOption, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	ID := TV_GetParentTop(ID)
 	For key in list
-		If (ID = list[key].ID)
+		If (ID == list[key].ID)
 			return list[key][GetOption]
 	return
 }
 TV_GetIDFromGroup(GroupName, list){
-	If (GroupName = "")
+	If (GroupName == "")
 		return
 	
 	For key in list
-		If (GroupName = list[key].GroupName)
+		If (GroupName == list[key].GroupName)
 			ID := list[key].ID
 	return ID
 }
 TV_GetItemKey(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			return key
 		}
 		Else If ( TV_GetChild( list[key].ID ) ) {
@@ -1080,11 +1080,11 @@ TV_GetItemKey(ID, list){
 	return 0
 }
 TV_GetItemKeyList(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			return list[key]
 		}
 		Else If ( TV_GetChild( list[key].ID ) ) {
@@ -1096,11 +1096,11 @@ TV_GetItemKeyList(ID, list){
 	return 0
 }
 TV_GetIDFromValue(target, list, ItemName="Val"){
-	If (target = "")
+	If (target == "")
 		return
 	
 	For key in list {
-		If (target = list[key][ItemName]) {
+		If (target == list[key][ItemName]) {
 			return list[key].ID
 		}
 		Else If ( TV_GetChild( list[key].ID ) ) {
@@ -1112,11 +1112,11 @@ TV_GetIDFromValue(target, list, ItemName="Val"){
 	return 0
 }
 TV_GetItemList(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			return list[key].ItemList
 		}
 		Else If ( TV_GetChild( list[key].ID ) ) {
@@ -1128,11 +1128,11 @@ TV_GetItemList(ID, list){
 	return 0
 }
 TV_GetItemText(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			text := list[key].Val
 			return text
 		}
@@ -1145,11 +1145,11 @@ TV_GetItemText(ID, list){
 	return 0
 }
 TV_GetItemOption(ID, GetOption, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			Option := list[key][GetOption]
 			return Option
 		}
@@ -1162,19 +1162,19 @@ TV_GetItemOption(ID, GetOption, list){
 	return 0
 }
 TV_GetParentList(ID, list){
-	If (ID = "")
+	If (ID == "")
 		return
 		
 	Parent := TV_GetParent(ID)
 	ParentList := TV_GetItemList(Parent, list)
 	
-	If (ParentList = 0)
+	If (ParentList == 0)
 		return list
 	Else
 		return ParentList
 }
 TV_GetParentTop(ID){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	Parent := TV_GetParent(ID)
@@ -1183,7 +1183,7 @@ TV_GetParentTop(ID){
 	return ID
 }
 TV_GetChildren(ID, list=""){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	If ( !IsObject(list) )
@@ -1210,7 +1210,7 @@ TV_GetChildren(ID, list=""){
 	return list
 }
 TV_GetItemAll(ID){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	ID   := TV_GetParentTop(ID)
@@ -1241,7 +1241,7 @@ LV_DeleteAll(t){
 	Gui, %GuiNum%:%CtrType%, %CtrName%
 	GuiControl, %GuiNum%:-Redraw, %CtrName%
 	
-	If (CtrType = "ListView") {
+	If (CtrType == "ListView") {
 		LV_Delete()
 		LV_Modify(1, "Focus")
 	}
@@ -1261,7 +1261,7 @@ LV_AddFromList(t){
 		Obj := Object()
 		For i in Column {
 			item := list[key][ Column[i].Key ]
-			If (item = "%key%")
+			If (item == "%key%")
 				item := key
 			Else If (IsObject(item))
 				item := _StringCombine("　", item*)
@@ -1285,7 +1285,7 @@ TV_AddFromList(list, Parent, t){
 		IconNum  := list[key].IconNum
 		
 		If (himl != 0 && himl != "") {
-			If (IL_Reflesh = 1) {
+			If (IL_Reflesh == 1) {
 				IfExist, %IconPath%
 					IconNum := IL_Add(himl, IconPath)
 				Else
@@ -1314,11 +1314,11 @@ TV_SaveOption(list){
 	}
 }
 TV_SetItemOption(ID, SetOption, SetValue, list){
-	If (ID = "")
+	If (ID == "")
 		return
 	
 	For key in list {
-		If (ID = list[key].ID) {
+		If (ID == list[key].ID) {
 			list[key][SetOption] := SetValue
 			return 1
 		}
@@ -1384,7 +1384,7 @@ DestroyItemList(t){
 
 HtmlLoad(t){
 	CtrHtml := t.CtrHtml
-	If (CtrHtml="")
+	If (CtrHtml=="")
 		return
 	
 	doc := COM_AtlAxCreateControl( t.ControlID, "HTMLfile" ) ; http://msdn.microsoft.com/en-us/library/da181h29
@@ -1479,9 +1479,9 @@ DeQuoteTags(target, t){
 		r      := StringRight(Quote, 1)
 		tLeft  := StringLeft(target, 1)
 		tRight := StringRight(target, 1)
-		If (tLeft = l)
+		If (tLeft == l)
 			target := StringTrimLeft(target, 1)
-		If (tRight = r)
+		If (tRight == r)
 			target := StringTrimRight(target, 1)
 	}
 	return target

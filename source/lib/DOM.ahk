@@ -1,17 +1,17 @@
-/*
+ï»¿/*
 Use DOM Document and Xpath
 */
 
-EnvSet, A_Lib_Xpath, lib\javascript-xpath.js ; DOM‚ÅXPath‚ğˆµ‚¤‚½‚ß‚É•K—v
+EnvSet, A_Lib_Xpath, lib\javascript-xpath.js ; DOMã§XPathã‚’æ‰±ã†ãŸã‚ã«å¿…è¦
 
 class DOM {
 	
 	__New(ByRef DOM_data=""){
-		; Œ»İ‚ÌƒhƒLƒ…ƒƒ“ƒgî•ñ (w’èHTML or FileƒpƒX or URL‚©‚ç¶¬)
+		; ç¾åœ¨ã®ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆæƒ…å ± (æŒ‡å®šHTML or Fileãƒ‘ã‚¹ or URLã‹ã‚‰ç”Ÿæˆ)
 		this.doc := DOM_data ? this.createDoc(DOM_data) : ""
 	}
 	
-	; DOMƒhƒLƒ…ƒƒ“ƒg‚ğw’èHTMLƒf[ƒ^ or URL or ƒ[ƒJƒ‹ƒpƒX‚©‚ç¶¬
+	; DOMãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆã‚’æŒ‡å®šHTMLãƒ‡ãƒ¼ã‚¿ or URL or ãƒ­ãƒ¼ã‚«ãƒ«ãƒ‘ã‚¹ã‹ã‚‰ç”Ÿæˆ
 	createDoc(ByRef DOM_data){
 		If ( IfInString(DOM_data, "<HTML") )
 			doc := this.loadHTML( DOM_data )
@@ -20,12 +20,12 @@ class DOM {
 		Else IfExist, %DOM_data%
 			doc := this.loadHTML( FileRead(DOM_data) )
 		Else
-			throw Exception("DOMƒIƒuƒWƒFƒNƒg‚Ì¶¬Œ³‚É•s³‚ÈƒpƒXu" path "v‚ª“n‚³‚ê‚Ü‚µ‚½B")
+			throw Exception("DOMã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ç”Ÿæˆå…ƒã«ä¸æ­£ãªãƒ‘ã‚¹ã€Œ" path "ã€ãŒæ¸¡ã•ã‚Œã¾ã—ãŸã€‚")
 		
-		this.doc := doc ; Œ»İ‚ÌDOMî•ñ‚ğã‘‚«
+		this.doc := doc ; ç¾åœ¨ã®DOMæƒ…å ±ã‚’ä¸Šæ›¸ã
 		return doc
 	}
-	; w’èXPath‚Ìƒm[ƒh‚ğæ“¾
+	; æŒ‡å®šXPathã®ãƒãƒ¼ãƒ‰ã‚’å–å¾—
 	getElementsByXPath(xpath, node="", doc=""){
 		elems  := Object()
 		result := this.getXpathResult(xpath, node, doc, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE)
@@ -34,12 +34,12 @@ class DOM {
 		
 		return elems
 	}
-	; w’èXPath‚Ìƒm[ƒh‚ğÅ‰‚Ìˆê‚Â‚Ì‚İæ“¾
+	; æŒ‡å®šXPathã®ãƒãƒ¼ãƒ‰ã‚’æœ€åˆã®ä¸€ã¤ã®ã¿å–å¾—
 	getFirstElementByXPath(xpath, node="", doc=""){
 		result := this.getXpathResult(xpath, node, doc, XPathResult.FIRST_ORDERED_NODE_TYPE)
 		return result.snapshotItem[0]
 	}
-	; w’èXPath‚Ìƒm[ƒhŒŸõŒ‹‰Ê‚ğæ“¾
+	; æŒ‡å®šXPathã®ãƒãƒ¼ãƒ‰æ¤œç´¢çµæœã‚’å–å¾—
 	getXPathResult(xpath, node, doc, resultType=7){
 		doc    := IsObject(doc)  ? doc  : this.doc
 		node   := IsObject(node) ? node : this.doc
@@ -47,13 +47,13 @@ class DOM {
 		return result
 	}
 	
-	; HTMLƒf[ƒ^‚ğDOMƒhƒLƒ…ƒƒ“ƒgŒ`®‚É•ÏŠ·
-	; 	(ByRef data: HTMLƒf[ƒ^Bƒf[ƒ^—Ê‚ª–c‘å‚Å‚ ‚é‚½‚ßQÆ“n‚µ)
+	; HTMLãƒ‡ãƒ¼ã‚¿ã‚’DOMãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆå½¢å¼ã«å¤‰æ›
+	; 	(ByRef data: HTMLãƒ‡ãƒ¼ã‚¿ã€‚ãƒ‡ãƒ¼ã‚¿é‡ãŒè†¨å¤§ã§ã‚ã‚‹ãŸã‚å‚ç…§æ¸¡ã—)
 	loadHTML(ByRef data){
 		doc := ComObjCreate("HTMLfile")
 		doc.write(data)
 		
-		; XPath‘€ìŠÖ”‚ğ•t‰Á
+		; XPathæ“ä½œé–¢æ•°ã‚’ä»˜åŠ 
 		scr      := doc.createElement("script")
 		scr.src  := _RelToAbs(A_Lib_Xpath)
 		scr.type := "text/javascript"
@@ -61,8 +61,8 @@ class DOM {
 		
 		return doc
 	}
-	; XMLƒf[ƒ^‚ğXML_DOMƒIƒuƒWƒFƒNƒgŒ`®‚É•ÏŠ·
-	; 	(ByRef data: XMLƒf[ƒ^Bƒf[ƒ^—Ê‚ª–c‘å‚Å‚ ‚é‚½‚ßQÆ“n‚µ)
+	; XMLãƒ‡ãƒ¼ã‚¿ã‚’XML_DOMã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆå½¢å¼ã«å¤‰æ›
+	; 	(ByRef data: XMLãƒ‡ãƒ¼ã‚¿ã€‚ãƒ‡ãƒ¼ã‚¿é‡ãŒè†¨å¤§ã§ã‚ã‚‹ãŸã‚å‚ç…§æ¸¡ã—)
 	loadXML(ByRef data){
 		doc := ComObjCreate("MSXML2.DOMDocument.6.0")
 		doc.async := false
