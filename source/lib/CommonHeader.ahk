@@ -43,18 +43,14 @@ SetTitleMatchMode, RegEx
 
 ; 共通ライブラリの読込み定義
 #Include *i <MyScripts>
-#Include *i <Functions>
-#Include *i <COM>
-#Include *i <DOM>
-#Include *i <Hashish>
 
 ; グローバル変数の格納オブジェクトを生成
 global A_Init_Object := Object()
 
 ; コマンドライン引数を読みこみ
-A_Init_Object["CmdParams"] := Object() ; 引数の格納オブジェクト
+A_Init_Object["CmdArgs"] := Object() ; 引数の格納オブジェクト
 Loop, %0% {
-	A_Init_Object["CmdParams"][A_Index] := %A_Index%
-	If (A_Init_Object["CmdParams"][A_Index] = "%Blank%")
-		A_Init_Object["CmdParams"][A_Index] := "" ; 空白値を一つの引数としてカウント
+	A_Init_Object["CmdArgs"][A_Index] := %A_Index%
+	If (A_Init_Object["CmdArgs"][A_Index] = "%Blank%")
+		A_Init_Object["CmdArgs"][A_Index] := "" ; 空白値を一つの引数としてカウント
 }
