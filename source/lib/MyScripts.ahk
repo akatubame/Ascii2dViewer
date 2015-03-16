@@ -54,33 +54,42 @@ _HttpPost(url, postdata){
 	WinHttpReq.Send(postdata)
 	return WinHttpReq.ResponseText
 }
-; 指定画像ファイルをtransfer.shへアップロード
-_UploadImageToTransferSh(file, newName=""){
+; 指定ファイルを指定URLへアップロード
+_Http_FileUpload(method, file, uploadURL, setRequestHeader=""){
 	
-	; アップロード後の指定ファイル名を整形。未指定なら元画像のMD5を使用
-	If (newName != "")
-		newName := _OptimizeNameUpl(newName)
-	Else
-		newName := _HashGetMD5(file) "." _FileGetExt(file)
+	; ファイルのデータを形式を自動判別して読込み
+	postData := "", length := ""
+	_FileReadBin(file, postData, length)
 	
-	; 画像のバイナリデータを読込
-	img := ComObjCreate("WIA.ImageFile")
-	img.LoadFile(file)
-	postdata := img.filedata.binarydata
-	
-	; 画像のアップロード
+	; ファイルのアップロード
 	WinHttpReq := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-	WinHttpReq.Open("PUT", "https://transfer.sh/" newName)
+	WinHttpReq.open(method, uploadURL, false)
+	WinHttpReq.setRequestHeader("Content-Length", length)
+	For key,value in setRequestHeader {
+		WinHttpReq.setRequestHeader(key, value)
+	}
+	
 	Try
-		WinHttpReq.Send(postdata)
+		WinHttpReq.send(postData)
 	Catch, e
 		throw Exception(file "のアップロードに失敗しました：" e)
 	
-	; アップロード画像のURLを取得
-	imgURL := WinHttpReq.ResponseText
-	imgURL := RegExReplace(imgURL, "(?:\n|\r)$", "")
+	return WinHttpReq.responseText
+}
+; 指定ファイルをtransfer.shへアップロード
+_UploadFileToTransferSh(file, newFileName=""){
 	
-	return imgURL
+	; アップロード後のファイル名を整形。未指定なら元のファイル名を使用
+	If (newFileName="") {
+		newFileName := _FileGetName(file)
+	}
+	newFileName := _OptimizeNameUpl(newFileName)
+	
+	; ファイルをアップロード、成功すればHTTPレスポンスからURLを取得
+	uploadURL := _Http_FileUpload("PUT", file, "https://transfer.sh/" newFileName)
+	uploadURL := RegExReplace(uploadURL, "(?:\n|\r)$", "") ; 末尾の改行除去
+	
+	return uploadURL
 }
 ; 指定文字列 or ファイルから各種ハッシュ文字列を取得
 _HashGet(target, Hashname){
@@ -189,6 +198,30 @@ _FileGetDir(path){
 _FileGetDrive(path){
 	SplitPath(path, name, dir, ext, noext, drive)
 	return _RemoveSpace(drive)
+}
+; 指定ファイルがバイナリ形式かアスキー形式かを判別する
+_isBinFile(path, tolerance=5) {
+	file := FileOpen(path, "r")
+	loop, %tolerance% {
+		file.RawRead(a, 1)
+		byte := NumGet(&a, "Char")
+		if (byte<9) or (byte>126) or ( (byte<32) and (byte>13) ) {
+			file.Close()
+			return 1
+		}
+	}
+	file.Close()
+	return 0
+}
+; 指定ファイルの形式を自動で判別して読込み
+_FileReadBin(path, ByRef data, ByRef nLen){
+	stream := ComObjCreate("ADODB.Stream")
+	stream.Open()
+	stream.Type := _isBinFile(path) ? 1 : 2
+	stream.LoadFromFile(path)
+	
+	nLen := stream.Size
+	data := _isBinFile(path) ? stream.Read(nLen) : stream.ReadText(nLen)
 }
 ; 指定フォーマットの文字列をオブジェクトに格納
 _ObjFromStr(String, Rows="`n", Equal="=", Indent="`t"){
@@ -350,14 +383,14 @@ _RemoveIndent(str){
 	return result
 }
 ; 指定文字列からファイル名使用不可文字を削除する
-_RemoveIllegalChar(var){
-	;var := StringReplace(var, A_Space, "_", "All")
+_RemoveIllegalChar(str){
+	;str := StringReplace(str, A_Space, "_", "All")
 	;chars = ,<>:;'"/|\{}=+`%^&*~
 	chars = ,<>:;"/|\{}=*~
 	loop, parse, chars,
-		var := StringReplace(var, A_LoopField, "", "All")
-	;var := StringReplace(var, "_", A_Space, "All")
-	return var
+		str := StringReplace(str, A_LoopField, "", "All")
+	;str := StringReplace(str, "_", A_Space, "All")
+	return str
 }
 ; 指定文字列を検索語に適した文字列に整形する
 _OptimizeChar(str){
@@ -373,10 +406,14 @@ _OptimizeName(str){
 	str := _RemoveIllegalChar(str)
 	return str
 }
-; 指定ファイル名をアップロードに適した文字列に整形する
+; 指定ファイル名をアップロードファイル名に適した文字列に整形する
 _OptimizeNameUpl(str){
 	str := _RegExEscapeZenkaku(str)
-	str := _ListReplace(str,, A_Init_Object["OptimizeNameUpl"])
+	str := _RemoveIllegalChar(str)
+	chars = +`%&()[]
+	loop, parse, chars,
+		str := StringReplace(str, A_LoopField, "", "All")
+	str := StringReplace(str, " ", "")
 	return str
 }
 ; 指定文字列から全角文字を消去

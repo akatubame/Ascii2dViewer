@@ -43,6 +43,10 @@ SetTitleMatchMode, RegEx
 
 ; 共通ライブラリの読込み定義
 #Include *i <MyScripts>
+#Include *i <COM>
+#Include *i <DOM>
+#Include *i <Functions>
+#Include *i <Hashish>
 
 ; グローバル変数の格納オブジェクトを生成
 global A_Init_Object := Object()

@@ -518,7 +518,7 @@ MainDL_Drop(files){
 	Loop, parse, files, `n, `r
 	{
 		SB_SetText(A_Index "/" count "枚目のアップロード中...", 2, 2)
-		url := _UploadImageToTransferSh(A_LoopField)
+		url := _UploadFileToTransferSh(A_LoopField)
 		_AddLine(imageUrls, url)
 	}
 	
