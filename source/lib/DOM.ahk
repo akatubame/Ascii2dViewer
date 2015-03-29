@@ -20,7 +20,7 @@ class DOM {
 		Else IfExist, %DOM_data%
 			doc := this.loadHTML( FileRead(DOM_data) )
 		Else
-			throw Exception("DOMオブジェクトの生成元に不正なパス「" path "」が渡されました。")
+			throw Exception("DOMオブジェクトの生成元に不正なパス「" DOM_data "」が渡されました。")
 		
 		this.doc := doc ; 現在のDOM情報を上書き
 		return doc
